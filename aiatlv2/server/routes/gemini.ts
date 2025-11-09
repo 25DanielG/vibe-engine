@@ -18,7 +18,7 @@ import { createRepoWebhook } from '../utils/createWebhook.js'
 const router = Router();
 // router.use(authenticateToken);
 
-const ai = new GoogleGenAI({ apiKey: "AIzaSyBsDXpxnZntE-cs8JoCLKmic6zHhrcBrWM" })
+const ai = new GoogleGenAI({ apiKey: "AIzaSyCFSPOjc6d6av448EEg8MVYBtuZXVOaDWc" })
 
 interface GetFileArgs {
   owner: string;
@@ -62,16 +62,16 @@ router.post("/create-feature-map", authenticateToken, async (req: AuthRequest, r
       return res.status(400).json({ error: 'GitHub not connected for this user' });
     }
 
-    // Create an endpoint to monitor for updates:
-    createRepoWebhook(
-      token,
-      githubUser,
-      repoName
-    )
+    // // Create an endpoint to monitor for updates:
+    // createRepoWebhook(
+    //   token,
+    //   githubUser,
+    //   repoName
+    // )
 
     //Fetch entire GitHub repository
     const repo: string = await fetchAllFilesFromRepo({ owner: githubUser, repo: repoName, token: token });
-
+    console.log("repo name: " + repo);
     //Get feature generation markdown and functions, inputted with repository code
     const { markdown, json } = await getPrompts("feature");
     const featurePrompt = renderTemplate(markdown, { "repo": repo })
@@ -87,6 +87,8 @@ router.post("/create-feature-map", authenticateToken, async (req: AuthRequest, r
         }],
       },
     });
+    console.log(response.functionCalls?.length);
+    console.log(response.functionCalls);
     
     const featureGroup: Record<string, FeatureEntry> = {};
     if (response.functionCalls && response.functionCalls.length > 0) {
@@ -139,7 +141,8 @@ router.post("/create-feature-map", authenticateToken, async (req: AuthRequest, r
       }
       // Convert featureGroup object to JSON string
       const featureMapStr = JSON.stringify(featureGroup);
-      await User.findByIdAndUpdate(req.user._id, { featureMap: featureMapStr });
+      console.log(featureMapStr);
+      await User.findByIdAndUpdate(req.userId, { featureMap: featureMapStr });
 
       res.json({ success: true, featureMap: featureMapStr });
 

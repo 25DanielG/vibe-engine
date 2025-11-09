@@ -34,7 +34,7 @@ export default [
           description: 'List of file paths that are relevant to this features',
         },
       },
-      required: ['feature_id'],
+      required: ['name', 'user_description', 'technical_description', 'file_references'],
     },
   },
 ];

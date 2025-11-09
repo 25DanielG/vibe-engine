@@ -3,7 +3,7 @@ You are an AI assistant that is currently trying to link different core features
 # Context: 
 I will give you a list of features. These features will have a name, user_description, techinical_description, and files_associaited:
 
-{{features}}
+{{ features }}
 
 Use the techinical_description to understand how the feature is made. This can be used to infer which features should be connect. The files_associated array can also help provide you with infromation as two features that use the same files, might be more closely related. 
 
@@ -56,4 +56,3 @@ You will be provided a single function to output, the adjacency list of features
 - feature name -> {names of neighboring features..}
 
 Be precise with your connections, no need to explain. ENSURE that the names in your generated adjacency list MATCHES the ones provided EXACTLY! Not doing so will lead to CATASTROPHIC CONSEQUENCES.
-

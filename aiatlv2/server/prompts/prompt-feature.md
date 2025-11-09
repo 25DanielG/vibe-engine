@@ -1,6 +1,5 @@
 # Ask
 You are an AI assistant. From the following GitHub reposititory, identify all distinct features or functionalities implemented in the code. 
-Add the feature 
 
 # Context
 Assume the repository is a multi-module or feature-based project.
@@ -40,4 +39,4 @@ update_feature has 4 parameters: name, user_description, technical_description, 
 * Call add_feature if the new feature does not already exist  
 * Call update_feature if the new feature already exists 
 
-TOTAL TOKENS SHOULD BE UNDER 1000.
+TOTAL TOKENS SHOULD BE UNDER 1000. You must generate features no matter what

@@ -19,7 +19,7 @@ router.get('/api/auth/github/start', (_req, res) => {
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
-    scope: 'read:user user:email',
+    scope: 'read:user user:email admin:repo_hook public_repo repo write:repo_hook',
     allow_signup: 'true',
   });
 

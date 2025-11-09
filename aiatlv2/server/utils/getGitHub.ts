@@ -18,7 +18,7 @@ export interface RepoFile {
 export async function fetchAllFilesFromRepo({
   owner,
   repo,
-  branch = "master",
+  branch = "main",
   token,
 }: {
   owner: string;
