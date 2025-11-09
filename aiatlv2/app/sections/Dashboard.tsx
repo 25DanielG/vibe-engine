@@ -8,9 +8,11 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import UserMenu from "~/components/UserMenu";
 
+const TOKEN_STORAGE_KEY = "vibeengine:auth_token";
+
 const FEATURES_LIST = [
     {
-        featureId: "feature-1",
+        featureId: "Authentication & OAuth",
         featureName: "Authentication & OAuth",
         userSummary:
             "Users can sign up with email/password or sign in using GitHub. Sessions persist across reloads and logouts work reliably.",
@@ -26,10 +28,10 @@ const FEATURES_LIST = [
             "client/app/components/UserMenu.tsx",
             "client/app/routes/login.tsx"
         ],
-        neighbors: ["feature-2", "feature-3", "feature-6"]
+        neighbors: ["User Profiles & Settings", "Repository Integration & Sync", "Database & Persistence Layer"]
     },
     {
-        featureId: "feature-2",
+        featureId: "User Profiles & Settings",
         featureName: "User Profiles & Settings",
         userSummary:
             "Users can edit their profile (name, avatar, bio), manage notification preferences, and connect or disconnect their GitHub account.",
@@ -44,10 +46,10 @@ const FEATURES_LIST = [
             "client/app/components/profile/ProfileForm.tsx",
             "client/app/lib/api/profile.ts"
         ],
-        neighbors: ["feature-1", "feature-6"]
+        neighbors: ["Authentication & OAuth", "Database & Persistence Layer"]
     },
     {
-        featureId: "feature-3",
+        featureId: "Repository Integration & Sync",
         featureName: "Repository Integration & Sync",
         userSummary:
             "After signing in with GitHub, users can see a list of their repositories, select one, and trigger an analysis run for that repo.",
@@ -62,10 +64,10 @@ const FEATURES_LIST = [
             "client/app/lib/api/github.ts",
             "client/app/hooks/useGitHubRepos.ts"
         ],
-        neighbors: ["feature-1", "feature-4", "feature-5", "feature-6"]
+        neighbors: ["Authentication & OAuth", "Feature Map & Dashboard Analytics", "Background Jobs & Code Analysis Pipeline", "Database & Persistence Layer"]
     },
     {
-        featureId: "feature-4",
+        featureId: "Feature Map & Dashboard Analytics",
         featureName: "Feature Map & Dashboard Analytics",
         userSummary:
             "Displays a feature map for the selected repository along with metrics like file counts, feature dependencies, and recent analysis runs.",
@@ -81,10 +83,10 @@ const FEATURES_LIST = [
             "client/app/components/Stats/MetricCards.tsx",
             "client/app/lib/api/analytics.ts"
         ],
-        neighbors: ["feature-3", "feature-5", "feature-7"]
+        neighbors: ["Repository Integration & Sync", "Background Jobs & Code Analysis Pipeline", "Notifications & Webhooks"]
     },
     {
-        featureId: "feature-5",
+        featureId: "Background Jobs & Code Analysis Pipeline",
         featureName: "Background Jobs & Code Analysis Pipeline",
         userSummary:
             "When a repo is selected, the app queues an analysis job that runs in the background and updates the dashboard when finished.",
@@ -98,10 +100,10 @@ const FEATURES_LIST = [
             "server/services/analysisPipeline.ts",
             "server/scripts/run-worker.ts"
         ],
-        neighbors: ["feature-3", "feature-4", "feature-6", "feature-8"]
+        neighbors: ["Repository Integration & Sync", "Feature Map & Dashboard Analytics", "Database & Persistence Layer", "Observability, Config & Error Handling"]
     },
     {
-        featureId: "feature-6",
+        featureId: "Database & Persistence Layer",
         featureName: "Database & Persistence Layer",
         userSummary:
             "Centralized data storage for users, repositories, feature maps, and queued analysis runs.",
@@ -117,10 +119,10 @@ const FEATURES_LIST = [
             "server/models/Repository.ts",
             "server/models/AnalysisRun.ts"
         ],
-        neighbors: ["feature-1", "feature-2", "feature-3", "feature-5"]
+        neighbors: ["Authentication & OAuth", "User Profiles & Settings", "Repository Integration & Sync", "Background Jobs & Code Analysis Pipeline"]
     },
     {
-        featureId: "feature-7",
+        featureId: "Notifications & Webhooks",
         featureName: "Notifications & Webhooks",
         userSummary:
             "Users get notified when an analysis run finishes and the app can react to GitHub webhook events like new commits or pull requests.",
@@ -135,10 +137,10 @@ const FEATURES_LIST = [
             "client/app/components/NotificationBell.tsx",
             "client/app/lib/api/notifications.ts"
         ],
-        neighbors: ["feature-4", "feature-8"]
+        neighbors: ["Feature Map & Dashboard Analytics", "Observability, Config & Error Handling"]
     },
     {
-        featureId: "feature-8",
+        featureId: "Observability, Config & Error Handling",
         featureName: "Observability, Config & Error Handling",
         userSummary:
             "Keeps the system stable and debuggable with consistent logging, error pages, and environment-specific configuration.",
@@ -153,12 +155,11 @@ const FEATURES_LIST = [
             "client/app/components/ui/sonner.tsx",
             "client/app/root.tsx"
         ],
-        neighbors: ["feature-5", "feature-7"]
+        neighbors: ["Background Jobs & Code Analysis Pipeline", "Notifications & Webhooks"]
     }
 ];
 
 type Feature = {
-    featureId: string;
     featureName: string;
     userSummary: string;
     aiSummary: string;
@@ -205,6 +206,24 @@ export default function Dashboard() {
             return;
         }
 
+        // Need auth token (same one used for /api/github/repos)
+        let token: string | null = null;
+        if (typeof window !== "undefined") {
+            token = window.localStorage.getItem(TOKEN_STORAGE_KEY);
+        }
+
+        if (!token) {
+            setChatMessages((prev) => [
+                ...prev,
+                {
+                    role: "assistant",
+                    content:
+                        "You must be signed in with GitHub to generate features. Please log in and try again.",
+                },
+            ]);
+            return;
+        }
+
         setIsChatOpen(true);
 
         const userMessage = { role: "user" as const, content: trimmed };
@@ -218,13 +237,35 @@ export default function Dashboard() {
                 requestedFeature: trimmed,
             };
 
+            console.log("Sending data with token:", token);
+            console.log(payload);
+
             const res = await fetch(apiUrl("/api/gemini/generate-feature"), {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify(payload),
             });
+
+            if (!res.ok) {
+                const errorPayload = await res
+                    .json()
+                    .catch(() => ({ error: "Failed to generate feature" }));
+                console.error("generate-feature error:", errorPayload);
+
+                setChatMessages((prev) => [
+                    ...prev,
+                    {
+                        role: "assistant",
+                        content:
+                            errorPayload.error ||
+                            "The feature generation endpoint returned an error.",
+                    },
+                ]);
+                return;
+            }
 
             const data = await res.json();
             console.log("Gemini /generate-feature response:", data);
@@ -387,7 +428,6 @@ export default function Dashboard() {
                             </div>
                         )}
 
-                        {/* Input row (always visible) */}
                         <form className="flex items-center gap-3" onSubmit={handleChatSubmit}>
                             <Input
                                 type="text"
@@ -398,7 +438,7 @@ export default function Dashboard() {
                             />
                             <Button
                                 type="submit"
-                                disabled={!chatInput.trim()}
+                                disabled={!selectedRepo || !chatInput.trim()}
                                 className="bg-purple-600 hover:bg-purple-500 text-white font-semibold px-6 disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                                 Send
