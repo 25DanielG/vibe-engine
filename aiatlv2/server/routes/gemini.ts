@@ -4,7 +4,6 @@ import { Octokit } from '@octokit/rest';
 import { User } from '../models/User.js';
 import { authenticateToken } from '../middleware/auth.js';
 import type { AuthRequest } from '../middleware/auth.js';
-import { getPrompt } from '../utils/prompts.js';
 
 const router = Router();
 router.use(authenticateToken);
