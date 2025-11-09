@@ -37,7 +37,7 @@ router.post('/onboarding', async (req: AuthRequest, res) => {
 
     for (let i = 0; i < files.length; i += batchSize) {
       const batch = files.slice(i, i + batchSize);
-      
+
       for (const file of batch) {
         try {
           // Get file content
@@ -51,8 +51,7 @@ router.post('/onboarding', async (req: AuthRequest, res) => {
 
           const content = Buffer.from(data.content, 'base64').toString('utf-8');
 
-          // Generate features for this file using Gemini
-          const featureResponse = await fetch(`${process.env.API_URL || 'http://localhost:3001'}/api/gemini/generate`, {
+          const featureResponse = (await fetch(`${process.env.API_URL || 'http://localhost:3001'}/api/gemini/generate`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -63,7 +62,9 @@ router.post('/onboarding', async (req: AuthRequest, res) => {
               input: JSON.stringify({ path: file.path, content }),
               context: { fileName: file.path },
             }),
-          }).then(res => res.json());
+          }).then(res => res.json())) as {
+            features?: any[];
+          };
 
           if (featureResponse.features && Array.isArray(featureResponse.features)) {
             allFeatures.push(...featureResponse.features);
@@ -74,8 +75,7 @@ router.post('/onboarding', async (req: AuthRequest, res) => {
       }
     }
 
-    // Generate relationships between features
-    const relationshipResponse = await fetch(`${process.env.API_URL || 'http://localhost:3001'}/api/gemini/generate`, {
+    const relationshipResponse = (await fetch(`${process.env.API_URL || 'http://localhost:3001'}/api/gemini/generate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -85,7 +85,16 @@ router.post('/onboarding', async (req: AuthRequest, res) => {
         promptType: 2,
         input: JSON.stringify(allFeatures),
       }),
-    }).then(res => res.json());
+    }).then(res => res.json())) as {
+      relationships?: {
+        source?: string;
+        from?: string;
+        target?: string;
+        to?: string;
+      }[];
+    };
+
+
 
     // Save features to database
     if (projectId) {
@@ -112,6 +121,8 @@ router.post('/onboarding', async (req: AuthRequest, res) => {
         for (const rel of relationshipResponse.relationships) {
           const sourceFeature = featureMap.get(rel.source || rel.from);
           const targetFeature = featureMap.get(rel.target || rel.to);
+
+
 
           if (sourceFeature && targetFeature) {
             const feature = await Feature.findById(sourceFeature);
@@ -156,7 +167,7 @@ router.post('/modification', async (req: AuthRequest, res) => {
     }
 
     // Gather context (determine which files to read)
-    const contextResponse = await fetch(`${process.env.API_URL || 'http://localhost:3001'}/api/gemini/generate`, {
+    const contextResponse = (await fetch(`${process.env.API_URL || 'http://localhost:3001'}/api/gemini/generate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -167,9 +178,12 @@ router.post('/modification', async (req: AuthRequest, res) => {
         input: userInput,
         context: { featureMap },
       }),
-    }).then(res => res.json());
+    }).then(res => res.json())) as {
+      requestedFiles?: string[];
+    };
 
     const requestedFiles = contextResponse.requestedFiles || [];
+
     const octokit = new Octokit({ auth: user.githubToken });
 
     // Read requested files
@@ -228,7 +242,7 @@ router.post('/modification', async (req: AuthRequest, res) => {
 router.get('/status/:executionArn', async (req: AuthRequest, res) => {
   try {
     const { executionArn } = req.params;
-    
+
     // For simplicity, assume workflows complete immediately
     // In production, you'd track workflow state in database
     res.json({

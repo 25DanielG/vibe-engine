@@ -11,6 +11,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@google/genai": "^1.29.0",
     "@octokit/rest": "^20.0.2",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",

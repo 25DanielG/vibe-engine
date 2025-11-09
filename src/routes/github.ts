@@ -75,7 +75,12 @@ router.post('/oauth/callback', async (req: AuthRequest, res) => {
       }),
     });
 
-    const tokenData = await tokenResponse.json();
+    const tokenData = (await tokenResponse.json()) as {
+      error?: string;
+      error_description?: string;
+      access_token?: string;
+    };
+
 
     if (tokenData.error) {
       return res.status(400).json({ error: tokenData.error_description || tokenData.error });
