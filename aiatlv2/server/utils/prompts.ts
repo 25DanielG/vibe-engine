@@ -6,9 +6,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Load prompts from files (assumes prompts are in project root)
-export function getPrompts(id: number): {markdown: String, json: String} {
-  const fileNameMd = `prompt-${id}.md`;
-  const fileNameJSON = `prompt-${id}.json`;
+export function getPrompts(name: string): {markdown: String, json: String} {
+  const fileNameMd = `prompt-${name}.md`;
+  const fileNameJSON = `prompt-${name}.json`;
 
   const promptsdir = join(__dirname, '..', "prompts");
   

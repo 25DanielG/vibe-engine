@@ -4,10 +4,9 @@ import { Octokit } from '@octokit/rest';
 import { User } from '../models/User.js';
 import { authenticateToken } from '../middleware/auth.js';
 import type { AuthRequest } from '../middleware/auth.js';
-import { getPrompt } from '../utils/prompts.js';
 
 const router = Router();
-router.use(authenticateToken);
+// router.use(authenticateToken);
 
 const ai = new GoogleGenAI({apiKey: "AIzaSyBsDXpxnZntE-cs8JoCLKmic6zHhrcBrWM"})
 
@@ -201,7 +200,6 @@ router.post("/generate", async (req: AuthRequest, res) => {
       },    
     });
     
-    
 
     // The response object may vary depending on Gemini client version
     // Typically output text is in response.output_text
@@ -209,6 +207,7 @@ router.post("/generate", async (req: AuthRequest, res) => {
       const functionCall = response.functionCalls[0]; // Assuming one function call
       res.json({ functionName: functionCall.name, result: functionCall.args })
     } else {
+      console.log(response.text)
       res.json(null)
     }
   } catch (error) {
