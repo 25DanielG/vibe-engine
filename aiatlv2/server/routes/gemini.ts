@@ -173,7 +173,7 @@ async function makeFeatureMap(features: string) : Promise<FunctionCall[] | null>
       }],
     },
   });
-
+  
   // The response object may vary depending on Gemini client version
   // Typically output text is in response.output_text
   if (response.functionCalls && response.functionCalls.length > 0) {

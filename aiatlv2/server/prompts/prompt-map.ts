@@ -17,9 +17,9 @@ export default [
           type: Type.ARRAY,
           items: {
             type: Type.STRING,
-            description: 'Names of features this node is connected to in the feature graph',
+            description: 'Name of a feature that this feature is related and connected to within the feature map',
           },
-          description: 'Optional list of feature names this node connects to.',
+          description: 'List of features this node connects to.',
           minItems: 0,
           default: [],
         },
