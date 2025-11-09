@@ -12,7 +12,8 @@ Avoid duplication; merge overlapping functionality.
 Maintain consistent naming and descriptions for features across updates.
 
 ### Input
-The entire repository for the project. 
+I will also provide the source code for the entire repository. I will provide them in H2 Markup headers that represents the file names, followed by the content of the file. The source code is given as follows:
+{{ sourceCode }}
 
 ### Functions
 You will be provided the functions in your tools. These functions are to be called when you want to do something
