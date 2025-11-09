@@ -218,14 +218,14 @@ router.post("/generate-feature", authenticateToken, async (req: AuthRequest, res
         const funcName = func.name;
         const funcArgs = (func.args as { properties?: Record<string, unknown> })?.properties;
         if (!funcArgs) return;
-        
         // Add file to github repository
         if (funcName === "update_file") {
           writeFileToRepo(
             githubUser,
             repoName,
-            funcArgs.filename,
-            funcArgs.content,
+            // @ts-ignore
+            funcArgs?.filename,
+            funcArgs?.content,
             "VibeEngine updated a file in the repository.",
             "main",
             githubToken
@@ -234,6 +234,7 @@ router.post("/generate-feature", authenticateToken, async (req: AuthRequest, res
           writeFileToRepo(
             githubUser,
             repoName,
+            // @ts-ignore
             funcArgs?.filename ?? "",
             funcArgs?.content ?? "",
             "VibeEngine added a file to the repository.",
