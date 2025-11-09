@@ -134,7 +134,10 @@ export default function FeatureMapVisualization({ features }: { features: Featur
           </CardDescription>
         </CardHeader>
         <CardContent className="h-full pb-4">
-          <div className="h-[450px] rounded-lg overflow-hidden" style={{ background: '#1e293b' }}>
+          <div
+            className="h-[450px] rounded-lg overflow-hidden reactflow-dark"
+            style={{ background: "#1e293b" }}
+          >
             <ReactFlow
               nodes={nodes}
               edges={edges}
@@ -145,13 +148,14 @@ export default function FeatureMapVisualization({ features }: { features: Featur
               fitView
               attributionPosition="bottom-left"
             >
-              <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="#475569" />
-              <Controls className="bg-gray-800 border-purple-700 text-white [&_button]:bg-gray-800 [&_button]:border-purple-700 [&_button]:text-white [&_button:hover]:bg-purple-700" />
-              <MiniMap
-                nodeColor={() => '#a855f7'}
-                maskColor="rgba(30, 41, 59, 0.8)"
-                className="bg-gray-900 border border-purple-700"
+              <Background
+                variant={BackgroundVariant.Dots}
+                gap={16}
+                size={1}
+                color="#475569"
               />
+              <Controls />
+              <MiniMap />
             </ReactFlow>
           </div>
         </CardContent>

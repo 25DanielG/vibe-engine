@@ -9,54 +9,152 @@ import { Input } from "~/components/ui/input";
 import UserMenu from "~/components/UserMenu";
 
 const FEATURES_LIST = [
-    {
-        featureId: "feature-1",
-        featureName: "User Authentication",
-        userSummary: "Allows users to sign up, log in, and manage their accounts securely.",
-        aiSummary: "Implements JWT-based authentication with refresh tokens, password hashing using bcrypt, and session management with middleware protection.",
-        filenames: ["src/auth/login.ts", "src/auth/signup.ts", "src/middleware/auth.ts", "src/utils/jwt.ts"],
-        neighbors: ["feature-2", "feature-3", "feature-5"]
-    },
-    {
-        featureId: "feature-2",
-        featureName: "User Profile",
-        userSummary: "Users can view and edit their profile information including avatar and bio.",
-        aiSummary: "RESTful API endpoints for CRUD operations on user profiles, with image upload support via S3 and profile validation.",
-        filenames: ["src/profile/profile.controller.ts", "src/profile/profile.service.ts", "src/profile/upload.ts"],
-        neighbors: ["feature-1", "feature-4", "feature-6"]
-    },
-    {
-        featureId: "feature-3",
-        featureName: "Dashboard Analytics",
-        userSummary: "Displays key metrics and statistics about user activity and engagement.",
-        aiSummary: "Aggregates data from multiple sources using Redis caching, renders interactive charts with recharts library and real-time data updates.",
-        filenames: ["src/analytics/dashboard.tsx", "src/analytics/metrics.service.ts", "src/analytics/charts.tsx"],
-        neighbors: ["feature-1", "feature-4", "feature-5"]
-    },
-    {
-        featureId: "feature-4",
-        featureName: "Notifications",
-        userSummary: "Sends real-time notifications to users about important events.",
-        aiSummary: "WebSocket-based notification system with fallback to polling, stores notifications in PostgreSQL with read/unread tracking.",
-        filenames: ["src/notifications/notification.service.ts", "src/notifications/websocket.ts", "src/notifications/model.ts"],
-        neighbors: ["feature-2", "feature-3", "feature-6"]
-    },
-    {
-        featureId: "feature-5",
-        featureName: "API Gateway",
-        userSummary: "Central entry point for all API requests with routing and load balancing.",
-        aiSummary: "Express-based API gateway with rate limiting, request validation, CORS handling, and routing to microservices.",
-        filenames: ["src/gateway/server.ts", "src/gateway/routes.ts", "src/middleware/rate-limit.ts"],
-        neighbors: ["feature-1", "feature-3", "feature-6"]
-    },
-    {
-        featureId: "feature-6",
-        featureName: "Database Layer",
-        userSummary: "Manages all database connections and queries for the application.",
-        aiSummary: "PostgreSQL connection pooling with Prisma ORM, includes migrations, seeders, and query optimization with indexing.",
-        filenames: ["src/db/client.ts", "src/db/migrations/", "prisma/schema.prisma"],
-        neighbors: ["feature-2", "feature-4", "feature-5"]
-    }
+  {
+    featureId: "feature-1",
+    featureName: "Authentication & OAuth",
+    userSummary:
+      "Users can sign up with email/password or sign in using GitHub. Sessions persist across reloads and logouts work reliably.",
+    aiSummary:
+      "Implements JWT-based auth with HTTP-only refresh tokens, bcrypt password hashing, and GitHub OAuth via the GitHub REST API. Includes middleware for route protection, role-based guards, and token rotation on each refresh.",
+    filenames: [
+      "server/routes/auth.ts",
+      "server/middleware/authenticateToken.ts",
+      "server/services/authService.ts",
+      "server/services/githubOAuthService.ts",
+      "server/utils/jwt.ts",
+      "client/app/components/Navbar.tsx",
+      "client/app/components/UserMenu.tsx",
+      "client/app/routes/login.tsx"
+    ],
+    neighbors: ["feature-2", "feature-3", "feature-6"]
+  },
+  {
+    featureId: "feature-2",
+    featureName: "User Profiles & Settings",
+    userSummary:
+      "Users can edit their profile (name, avatar, bio), manage notification preferences, and connect or disconnect their GitHub account.",
+    aiSummary:
+      "Provides RESTful CRUD endpoints for user profiles backed by a PostgreSQL users table. Handles avatar uploads to S3-compatible storage, stores public GitHub metadata, and exposes typed hooks on the React side using React Query for optimistic updates.",
+    filenames: [
+      "server/routes/profile.ts",
+      "server/services/profileService.ts",
+      "server/models/User.ts",
+      "server/integrations/objectStorage.ts",
+      "client/app/sections/Profile.tsx",
+      "client/app/components/profile/ProfileForm.tsx",
+      "client/app/lib/api/profile.ts"
+    ],
+    neighbors: ["feature-1", "feature-6"]
+  },
+  {
+    featureId: "feature-3",
+    featureName: "Repository Integration & Sync",
+    userSummary:
+      "After signing in with GitHub, users can see a list of their repositories, select one, and trigger an analysis run for that repo.",
+    aiSummary:
+      "Uses the GitHub API with per-user access tokens to fetch repositories, supports pagination and filtering by owner/permissions, and stores a cached snapshot of selected repos. The React client uses a debounced search input and a virtualized dropdown to handle large repo lists, with error and rate-limit handling.",
+    filenames: [
+      "server/routes/github.ts",
+      "server/services/githubRepoService.ts",
+      "server/models/Repository.ts",
+      "server/middleware/rateLimit.ts",
+      "client/app/components/ConnectGitHub.tsx",
+      "client/app/lib/api/github.ts",
+      "client/app/hooks/useGitHubRepos.ts"
+    ],
+    neighbors: ["feature-1", "feature-4", "feature-5", "feature-6"]
+  },
+  {
+    featureId: "feature-4",
+    featureName: "Feature Map & Dashboard Analytics",
+    userSummary:
+      "Displays a feature map for the selected repository along with metrics like file counts, feature dependencies, and recent analysis runs.",
+    aiSummary:
+      "Express endpoints aggregate analysis results from a `feature_maps` and `analysis_runs` table, using Prisma with optimized joins and indexes. The React dashboard renders interactive graphs with Recharts, supports drill-down views per feature, and uses WebSocket-based live updates when a new analysis run completes.",
+    filenames: [
+      "server/routes/analytics.ts",
+      "server/services/featureMapService.ts",
+      "server/models/FeatureMap.ts",
+      "server/integrations/websocketServer.ts",
+      "client/app/sections/Dashboard.tsx",
+      "client/app/components/FeatureMapVisualization.tsx",
+      "client/app/components/Stats/MetricCards.tsx",
+      "client/app/lib/api/analytics.ts"
+    ],
+    neighbors: ["feature-3", "feature-5", "feature-7"]
+  },
+  {
+    featureId: "feature-5",
+    featureName: "Background Jobs & Code Analysis Pipeline",
+    userSummary:
+      "When a repo is selected, the app queues an analysis job that runs in the background and updates the dashboard when finished.",
+    aiSummary:
+      "Implements a worker process using BullMQ and Redis to run CPU-intensive code analysis outside the main Express process. Jobs consume GitHub repo metadata, clone repositories to a temporary workspace, run static analysis (AST parsing, dependency graph building), and persist normalized results to PostgreSQL. Includes retry/backoff policies and dead-letter queues.",
+    filenames: [
+      "server/jobs/queue.ts",
+      "server/jobs/analyzeRepositoryJob.ts",
+      "server/workers/worker.ts",
+      "server/config/redis.ts",
+      "server/services/analysisPipeline.ts",
+      "server/scripts/run-worker.ts"
+    ],
+    neighbors: ["feature-3", "feature-4", "feature-6", "feature-8"]
+  },
+  {
+    featureId: "feature-6",
+    featureName: "Database & Persistence Layer",
+    userSummary:
+      "Centralized data storage for users, repositories, feature maps, and queued analysis runs.",
+    aiSummary:
+      "Uses PostgreSQL with Prisma as the ORM. Includes connection pooling, environment-specific configurations, migrations, and seed scripts. Defines models for users, sessions, repositories, feature maps, and analysis runs, with compound indexes to speed up dashboard queries.",
+    filenames: [
+      "server/db/client.ts",
+      "server/db/migrate.ts",
+      "server/db/seed.ts",
+      "prisma/schema.prisma",
+      "prisma/migrations/",
+      "server/models/User.ts",
+      "server/models/Repository.ts",
+      "server/models/AnalysisRun.ts"
+    ],
+    neighbors: ["feature-1", "feature-2", "feature-3", "feature-5"]
+  },
+  {
+    featureId: "feature-7",
+    featureName: "Notifications & Webhooks",
+    userSummary:
+      "Users get notified when an analysis run finishes and the app can react to GitHub webhook events like new commits or pull requests.",
+    aiSummary:
+      "Exposes a signed GitHub webhook endpoint that validates HMAC signatures, processes events for push and pull_request, and enqueues analysis jobs when relevant files change. Stores notification records with read/unread flags and pushes real-time updates to the client via a WebSocket channel, with email fallback using a transactional email provider.",
+    filenames: [
+      "server/routes/webhooks.ts",
+      "server/routes/notifications.ts",
+      "server/services/webhookService.ts",
+      "server/services/notificationService.ts",
+      "server/integrations/emailProvider.ts",
+      "client/app/components/NotificationBell.tsx",
+      "client/app/lib/api/notifications.ts"
+    ],
+    neighbors: ["feature-4", "feature-8"]
+  },
+  {
+    featureId: "feature-8",
+    featureName: "Observability, Config & Error Handling",
+    userSummary:
+      "Keeps the system stable and debuggable with consistent logging, error pages, and environment-specific configuration.",
+    aiSummary:
+      "Centralized configuration module for server and client using environment variables with schema validation. Integrates structured logging, request logging middleware, and error-handling middleware that maps internal errors to user-friendly messages. Client-side React components display toast notifications and fallback error boundaries for failed API calls or component crashes.",
+    filenames: [
+      "server/config/env.ts",
+      "server/config/logger.ts",
+      "server/middleware/errorHandler.ts",
+      "server/middleware/requestLogger.ts",
+      "client/app/lib/config.ts",
+      "client/app/components/ui/sonner.tsx",
+      "client/app/root.tsx"
+    ],
+    neighbors: ["feature-5", "feature-7"]
+  }
 ];
 
 type Feature = {
