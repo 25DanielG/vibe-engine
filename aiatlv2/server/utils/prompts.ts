@@ -6,21 +6,19 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Load prompts from files (assumes prompts are in project root)
-export function getPrompts(id: number): {markdown: String, json: String} {
-  const fileNameMd = `prompt-${id}.md`;
-  const fileNameJSON = `prompt-${id}.json`;
+export async function getPrompts(name: string): Promise<{ markdown: string; json: any }> {
+  const fileNameMd = `prompt-${name}.md`;
+  const fileNameTS = `prompt-${name}.ts`;
 
   const promptsdir = join(__dirname, '..', "prompts");
-  
+
   const pathMd = join(promptsdir, fileNameMd);
-  const pathJSON = join(promptsdir, fileNameJSON);
+  const pathTS = join(promptsdir, fileNameTS);
 
-  const mdContents = readFileSync(pathMd, 'utf-8');
-  const jsonContents = readFileSync(pathJSON, 'utf-8');
+  const markdown = readFileSync(pathMd, "utf-8");
 
-  return {
-    markdown: mdContents,
-    json: JSON.parse(jsonContents)
-  }
+  const module = await import(pathTS);
+  const json = module.default;   // <-- default export
 
+  return { markdown, json };
 }
