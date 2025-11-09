@@ -125,7 +125,7 @@ export default function ConnectGitHub({ onRepoSelected, onAnalysisComplete }: Pr
             };
 
             const response = await fetch(
-                apiUrl("/api/gemini/create-TH"),
+                apiUrl("/api/gemini/create-feature-map"),
                 {
                     method: "POST",
                     headers: {
