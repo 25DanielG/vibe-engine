@@ -10,7 +10,7 @@ export default [
                 filename: { type: Type.STRING, description: 'The filename of the file that is being updated.' },
                 content: { type: Type.STRING, description: 'The content of the file that is being updated.' },
             },
-            required: ['content'],
+            required: ['content', 'filename'],
         }
     },
     {
@@ -22,7 +22,7 @@ export default [
                 filename: { type: Type.STRING, description: 'The filename of the new file being created.' },
                 content: { type: Type.STRING, description: 'The content of the new file that is being added.' },
             },
-            required: ['content'],
+            required: ['content', 'filename'],
         },
     }
 ];
