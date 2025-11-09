@@ -25,7 +25,6 @@ export default [
     parameters: {
       type: Type.OBJECT,
       properties: {
-        feature_id: { type: Type.STRING, description: 'ID of feature to update' },
         name: { type: Type.STRING, description: 'Feature name' },
         user_description: { type: Type.STRING, description: 'Non-technical description (should be 3-4 sentences and be written so someone who knows very little code can understand it' },
         technical_description: { type: Type.STRING, description: 'Technical description (should a 5 sentence, in depth, technical description so an AI that reads it later will understand perfectly how it works' },
