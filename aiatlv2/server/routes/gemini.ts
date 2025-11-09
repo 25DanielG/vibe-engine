@@ -9,7 +9,7 @@ import { getPrompts } from '../utils/prompts.js'
 const router = Router();
 // router.use(authenticateToken);
 
-const ai = new GoogleGenAI({apiKey: "AIzaSyBsDXpxnZntE-cs8JoCLKmic6zHhrcBrWM"})
+const ai = new GoogleGenAI({ apiKey: "AIzaSyBsDXpxnZntE-cs8JoCLKmic6zHhrcBrWM" })
 
 interface GetFileArgs {
   owner: string;
@@ -127,9 +127,9 @@ router.post("/generate", async (req: AuthRequest, res) => {
           //@ts-ignore
           functionDeclarations: functionDeclaration
         }],
-      },    
+      },
     });
-    
+
 
     // The response object may vary depending on Gemini client version
     // Typically output text is in response.output_text
@@ -147,7 +147,7 @@ router.post("/generate", async (req: AuthRequest, res) => {
 });
 
 // Generate feature map from disconnected features with Gemini
-async function makeFeatureMap(features: typeof Feature[]) : Promise<any> {
+async function makeFeatureMap(features: typeof Feature[]): Promise<any> {
   const { markdown, json } = await getPrompts("feature");
 
   // Generate content using Gemini
@@ -159,9 +159,9 @@ async function makeFeatureMap(features: typeof Feature[]) : Promise<any> {
         //@ts-ignore
         functionDeclarations: json
       }],
-    },    
+    },
   });
-  
+
 
   // The response object may vary depending on Gemini client version
   // Typically output text is in response.output_text
@@ -173,6 +173,21 @@ async function makeFeatureMap(features: typeof Feature[]) : Promise<any> {
     return null;
   }
 }
+
+router.post("/dummy", async (req: AuthRequest, res) => {
+  try {
+    const { prompt } = req.body ?? {};
+
+    const replyText = `Dummy Gemini response: I received your message "${
+      prompt ?? "no prompt provided"
+    }". This is just test text from the backend.`;
+
+    return res.json({ reply: replyText });
+  } catch (error) {
+    console.error("Dummy Gemini generation error:", error);
+    res.status(500).json({ error: "Failed to generate content" });
+  }
+});
 
 export default router;
 
