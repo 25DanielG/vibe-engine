@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import ConnectGitHub from "~/components/ConnectGithub";
 import FeatureMapVisualization from "~/components/FeatureMapVisualization";
 import ChatInterface from "~/components/ChatInterface";
@@ -32,70 +32,6 @@ export default function Dashboard() {
         { role: "user" | "assistant"; content: string }[]
     >([]);
 
-    useEffect(() => {
-        // load feature map from backend on first render
-        const loadFeatureMap = async () => {
-            try {
-                setLoading(true);
-
-                let token: string | null = null;
-                if (typeof window !== "undefined") {
-                    token = window.localStorage.getItem(TOKEN_STORAGE_KEY);
-                }
-
-                if (!token) {
-                    // Not logged in — keep default FEATURES_LIST or empty, your choice
-                    console.warn("No auth token found; using default feature list");
-                    setLoading(false);
-                    return;
-                }
-
-                const res = await fetch(apiUrl("/api/feature-map"), {
-                    method: "GET",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
-
-                if (!res.ok) {
-                    const errPayload = await res
-                        .json()
-                        .catch(() => ({ error: "Failed to load feature map" }));
-                    console.error("Error loading feature map:", errPayload);
-                    setLoading(false);
-                    return;
-                }
-
-                const data = await res.json() as { featureMap: unknown };
-
-                console.log("Loaded feature map data:", data);
-
-                let parsed: Feature[] = [];
-                if (Array.isArray(data.featureMap)) {
-                    parsed = data.featureMap as Feature[];
-                } else if (typeof data.featureMap === "string") {
-                    // In case you decide to send the raw string from backend
-                    try {
-                        parsed = JSON.parse(data.featureMap) as Feature[];
-                    } catch (err) {
-                        console.error("Failed to JSON.parse featureMap from server:", err);
-                    }
-                }
-
-                if (parsed && Array.isArray(parsed) && parsed.length > 0) {
-                    setFeatures(parsed);
-                }
-            } catch (err) {
-                console.error("Unexpected error loading feature map:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        void loadFeatureMap();
-    }, []);
-
     const API_BASE_URL = (() => {
         const configured = import.meta.env.VITE_API_URL?.replace(/\/$/, "") ?? "";
         if (configured) return configured;
@@ -103,6 +39,63 @@ export default function Dashboard() {
     })();
 
     const apiUrl = (path: string) => `${API_BASE_URL}${path}`;
+
+    const loadFeatureMap = useCallback(async () => {
+        try {
+            setLoading(true);
+
+            let token: string | null = null;
+            if (typeof window !== "undefined") {
+                token = window.localStorage.getItem(TOKEN_STORAGE_KEY);
+            }
+
+            if (!token) {
+                console.warn("No auth token found; using default feature list");
+                setLoading(false);
+                return;
+            }
+
+            const res = await fetch(apiUrl("/api/feature-map"), {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!res.ok) {
+                const errPayload = await res
+                    .json()
+                    .catch(() => ({ error: "Failed to load feature map" }));
+                console.error("Error loading feature map:", errPayload);
+                setLoading(false);
+                return;
+            }
+
+            const data = await res.json() as { featureMap: unknown };
+
+            let parsed: Feature[] = [];
+            if (Array.isArray(data.featureMap)) {
+                parsed = data.featureMap as Feature[];
+            } else if (typeof data.featureMap === "string") {
+                try {
+                    parsed = JSON.parse(data.featureMap) as Feature[];
+                } catch (err) {
+                    console.error("Failed to JSON.parse featureMap from server:", err);
+                }
+            }
+
+            if (parsed.length > 0) setFeatures(parsed);
+        } catch (err) {
+            console.error("Unexpected error loading feature map:", err);
+        } finally {
+            setLoading(false);
+        }
+    }, [apiUrl]);
+
+    useEffect(() => {
+        void loadFeatureMap();
+    }, [loadFeatureMap]);
 
     const handleChatSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -241,6 +234,7 @@ export default function Dashboard() {
                             onRepoSelected={(owner, repo) => {
                                 setSelectedRepo({ owner, repo });
                             }}
+                            onAnalysisComplete={loadFeatureMap}
                         />
                     </div>
                 </section>
