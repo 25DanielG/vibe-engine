@@ -1,21 +1,31 @@
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
 import githubRoutes from './routes/github.js';
 import geminiRoutes from './routes/gemini.js';
 import projectsRoutes from './routes/projects.js';
 //import workflowsRoutes from './routes/workflows.js';
 
-dotenv.config();
+import path from 'path';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
+// ESM-safe __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// 👇 Point dotenv *explicitly* at server/.env
+dotenv.config({ path: path.resolve(__dirname, '.env') });
+
+console.log('GITHUB_CLIENT_ID from env:', process.env.GITHUB_CLIENT_ID);
+console.log('GITHUB_REDIRECT_URI from env:', process.env.GITHUB_REDIRECT_URI);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/aiatl';
 
-// Middleware
 app.use(cors({
   origin: FRONTEND_URL,
   credentials: true,
@@ -29,7 +39,7 @@ app.get('/health', (req, res) => {
 });
 
 // Routes
-app.use('/api/auth', authRoutes);
+app.use('/', authRoutes);
 app.use('/api/github', githubRoutes);
 app.use('/api/gemini', geminiRoutes);
 app.use('/api/projects', projectsRoutes);

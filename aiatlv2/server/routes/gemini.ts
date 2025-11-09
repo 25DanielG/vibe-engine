@@ -6,7 +6,7 @@ import { authenticateToken } from '../middleware/auth.js';
 import type { AuthRequest } from '../middleware/auth.js';
 
 const router = Router();
-router.use(authenticateToken);
+// router.use(authenticateToken);
 
 const ai = new GoogleGenAI({apiKey: "AIzaSyBsDXpxnZntE-cs8JoCLKmic6zHhrcBrWM"})
 
@@ -76,77 +76,6 @@ const githubFunctions = {
   },
 };
 
-const functionDeclaration = [
-  {
-    name: 'get_file',
-    description: 'Retrieve the file contents of a GitHub Repository',
-    parameters: {
-      type: Type.OBJECT,
-      properties: {
-        owner: { type: Type.STRING, description: 'Owner of the repository' },
-        repo: { type: Type.STRING, description: 'Repository name' },
-        file_path: { type: Type.STRING, description: 'Path to the file in the repository' },
-        branch: { type: Type.STRING, description: 'Branch name (default: main)' },
-      },
-      required: ['owner', 'repo', 'file_path'],
-    },
-  },
-  {
-    name: 'update_file',
-    description: 'Update the contents of a specific file in a GitHub repository.',
-    parameters: {
-      type: Type.OBJECT,
-      properties: {
-        owner: { type: Type.STRING, description: 'Repository owner' },
-        repo: { type: Type.STRING, description: 'Repository name' },
-        path: { type: Type.STRING, description: 'File path' },
-        content: { type: Type.STRING, description: 'New file content' },
-        message: { type: Type.STRING, description: 'Commit message' },
-        branch: { type: Type.STRING, description: 'Branch name (default: main)' },
-        sha: { type: Type.STRING, description: 'File SHA from get_file (required for updates)' },
-      },
-      required: ['owner', 'repo', 'path', 'content', 'message', 'sha'],
-    },
-  },
-  {
-    name: 'add_feature',
-    description: 'Add a new feature to the feature map',
-    parameters: {
-      type: Type.OBJECT,
-      properties: {
-        name: { type: Type.STRING, description: 'Feature name' },
-        user_description: { type: Type.STRING, description: 'Non-technical description' },
-        technical_description: { type: Type.STRING, description: 'Technical description' },
-        file_references: {
-          type: Type.ARRAY,
-          items: { type: Type.STRING },
-          description: 'List of file paths',
-        },
-      },
-      required: ['name', 'user_description', 'technical_description', 'file_references'],
-    },
-  },
-  {
-    name: 'update_feature',
-    description: 'Update an existing feature in the feature map',
-    parameters: {
-      type: Type.OBJECT,
-      properties: {
-        feature_id: { type: Type.STRING, description: 'ID of feature to update' },
-        name: { type: Type.STRING, description: 'Feature name' },
-        user_description: { type: Type.STRING, description: 'Non-technical description' },
-        technical_description: { type: Type.STRING, description: 'Technical description' },
-        file_references: {
-          type: Type.ARRAY,
-          items: { type: Type.STRING },
-          description: 'List of file paths',
-        },
-      },
-      required: ['feature_id'],
-    },
-  },
-];
-
 async function executeFunctionCall(call: any, octokit: Octokit | null): Promise<any> {
   console.log(`Executing function: ${call.name}`, call.args);
 
@@ -200,7 +129,6 @@ router.post("/generate", async (req: AuthRequest, res) => {
       },    
     });
     
-    
 
     // The response object may vary depending on Gemini client version
     // Typically output text is in response.output_text
@@ -208,6 +136,7 @@ router.post("/generate", async (req: AuthRequest, res) => {
       const functionCall = response.functionCalls[0]; // Assuming one function call
       res.json({ functionName: functionCall.name, result: functionCall.args })
     } else {
+      console.log(response.text)
       res.json(null)
     }
   } catch (error) {

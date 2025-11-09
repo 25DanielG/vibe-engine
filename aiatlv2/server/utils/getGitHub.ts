@@ -1,10 +1,4 @@
-import fetch from "node-fetch";
-
-interface GitHubFile {
-  path: string;
-  type: "blob" | "tree";
-  url: string;
-}
+import { Octokit } from "@octokit/rest";
 
 interface RepoFile {
   path: string;
@@ -12,12 +6,14 @@ interface RepoFile {
 }
 
 /**
- * Pulls all files (recursively) from a GitHub repo.
- * @param owner The GitHub username or organization
- * @param repo The repository name
- * @param branch The branch to pull from (default: 'main')
- * @param token Optional GitHub token to avoid rate limiting
- * @returns A list of { path, content } for each file
+ * Pulls all files (recursively) from a GitHub repo using Octokit.
+ * Works with private repos if a token is provided.
+ *
+ * @param owner GitHub username or org
+ * @param repo Repo name
+ * @param branch Branch name (default: "main")
+ * @param token GitHub personal access token (required for private repos)
+ * @returns Array of { path, content }
  */
 export async function fetchAllFilesFromRepo(
   owner: string,
@@ -25,41 +21,39 @@ export async function fetchAllFilesFromRepo(
   branch = "main",
   token?: string
 ): Promise<RepoFile[]> {
-  const headers: Record<string, string> = {
-    "Accept": "application/vnd.github.v3+json",
-  };
-  if (token) headers["Authorization"] = `token ${token}`;
+  if (!token) {
+    throw new Error("A GitHub token is required for private repos");
+  }
 
-  // Step 1: Get full repo tree
-  const treeRes = await fetch(
-    `https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`,
-    { headers }
-  );
-  if (!treeRes.ok) throw new Error(`Failed to fetch repo tree: ${treeRes.statusText}`);
-  const treeData = await treeRes.json() as { tree: GitHubFile[] };
+  const octokit = new Octokit({ auth: token });
 
-  const files: GitHubFile[] = treeData.tree.filter((item) => item.type === "blob");
+  // Step 1: Get the branch's SHA
+  const branchInfo = await octokit.repos.getBranch({ owner, repo, branch });
+  const commitSha = branchInfo.data.commit.sha;
 
-  // Step 2: Download each file's contents
+  // Step 2: Get the full tree recursively
+  const treeResponse = await octokit.git.getTree({
+    owner,
+    repo,
+    tree_sha: commitSha,
+    recursive: "true",
+  });
+
+  const tree = treeResponse.data.tree;
+
+  // Filter blobs (files)
+  const files = tree.filter((item) => item.type === "blob");
+
+  // Step 3: Fetch file contents
   const results: RepoFile[] = [];
   for (const file of files) {
-    const fileRes = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${file.path}`, {
-      headers,
-    });
-    if (!fileRes.ok) {
-      console.warn(`Failed to fetch file ${file.path}`);
-      continue;
-    }
-    const content = await fileRes.text();
+    if (!file.sha || !file.path) continue;
+
+    const blob = await octokit.git.getBlob({ owner, repo, file_sha: file.sha });
+    // Content comes in base64; decode it
+    const content = Buffer.from(blob.data.content, "base64").toString("utf-8");
     results.push({ path: file.path, content });
   }
 
   return results;
 }
-
-// Example usage
-(async () => {
-  const files = await fetchAllFilesFromRepo("vercel", "next.js", "canary");
-  console.log(`Fetched ${files.length} files.`);
-  console.log(files.slice(0, 3)); // show first 3
-})();
