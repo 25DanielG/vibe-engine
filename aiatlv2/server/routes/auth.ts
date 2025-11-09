@@ -152,6 +152,38 @@ router.get('/auth/callback', async (req, res) => {
   }
 });
 
+router.get('/api/feature-map', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    if (!req.userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    // Only select the featureMap field for efficiency
+    const user = await User.findById(req.userId).select('featureMap');
+
+    if (!user || !user.featureMap) {
+      // No feature map yet — return empty list so frontend can fall back
+      return res.json({ featureMap: [] });
+    }
+
+    let parsed;
+    try {
+      // featureMap is stored as a string in Mongo
+      parsed = JSON.parse(user.featureMap);
+    } catch (err) {
+      console.error('Failed to JSON.parse featureMap for user', req.userId, err);
+      return res.status(500).json({ error: 'Invalid feature map format in database' });
+    }
+
+    return res.json({ featureMap: parsed });
+  } catch (err: any) {
+    console.error('Error in /api/feature-map:', err);
+    return res
+      .status(500)
+      .json({ error: err?.message || 'Failed to load feature map' });
+  }
+});
+
 // --- Get current user (unchanged except we skip password) ---
 router.get('/api/auth/me', authenticateToken, async (req: AuthRequest, res) => {
   try {

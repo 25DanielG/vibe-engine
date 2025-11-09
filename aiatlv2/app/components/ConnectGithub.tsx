@@ -32,6 +32,7 @@ type Phase = "idle" | "loading" | "connected" | "error";
 
 type Props = {
     onRepoSelected?: (owner: string, repo: string) => void;
+    onAnalysisComplete?: () => void;
 };
 
 const TOKEN_STORAGE_KEY = "vibeengine:auth_token";
@@ -44,7 +45,7 @@ const API_BASE_URL = (() => {
 
 const apiUrl = (path: string) => `${API_BASE_URL}${path}`;
 
-export default function ConnectGitHub({ onRepoSelected }: Props) {
+export default function ConnectGitHub({ onRepoSelected, onAnalysisComplete }: Props) {
     const [phase, setPhase] = useState<Phase>("loading");
     const [repos, setRepos] = useState<Repo[]>([]);
     const [selectedRepo, setSelectedRepo] = useState<string>("");
@@ -99,11 +100,71 @@ export default function ConnectGitHub({ onRepoSelected }: Props) {
         void loadRepos();
     }, []);
 
-    const handleAnalyze = () => {
-        if (!selectedRepo || !onRepoSelected) return;
+    const handleAnalyze = async () => {
+        if (!selectedRepo) return;
+
         const [owner, repo] = selectedRepo.split("/");
         if (!owner || !repo) return;
-        onRepoSelected(owner, repo);
+
+        // Get app auth token (same as /api/github/repos)
+        const token = typeof window !== "undefined"
+            ? window.localStorage.getItem(TOKEN_STORAGE_KEY)
+            : null;
+
+        if (!token) {
+            setErrorMessage("You must be signed in with GitHub.");
+            return;
+        }
+
+        try {
+            setPhase("loading");
+
+            const payload = {
+                githubUser: owner,
+                repoName: repo,
+            };
+
+            const response = await fetch(
+                apiUrl("/api/gemini/create-feature-map"),
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify(payload),
+                }
+            );
+
+            if (!response.ok) {
+                const errorPayload = await response
+                    .json()
+                    .catch(() => ({ error: "Failed to create feature map" }));
+                console.error("create-feature-map error:", errorPayload);
+                setErrorMessage(errorPayload.error || "Failed to create feature map");
+                setPhase("error");
+                return;
+            }
+
+            const data = await response.json();
+            console.log("Feature map created:", data);
+
+            if (data.success) {
+                if (onAnalysisComplete) {
+                    onAnalysisComplete();
+                }
+
+                if (onRepoSelected) {
+                    onRepoSelected(owner, repo);
+                }
+            }
+
+            setPhase("connected");
+        } catch (err: any) {
+            console.error("Error calling create-feature-map:", err);
+            setErrorMessage(err?.message || "Failed to create feature map");
+            setPhase("error");
+        }
     };
 
     return (
