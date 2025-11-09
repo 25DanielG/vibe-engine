@@ -9,6 +9,8 @@ import { getPrompt } from '../utils/prompts.js';
 const router = Router();
 router.use(authenticateToken);
 
+const ai = new GoogleGenAI({apiKey: "AIzaSyBsDXpxnZntE-cs8JoCLKmic6zHhrcBrWM"})
+
 interface GetFileArgs {
   owner: string;
   repo: string;
@@ -178,270 +180,40 @@ async function executeFunctionCall(call: any, octokit: Octokit | null): Promise<
 }
 
 // Gemini API endpoint
-router.post('/generate', async (req: AuthRequest, res) => {
+router.post("/generate", async (req: AuthRequest, res) => {
   try {
-    const { promptType, input, context } = req.body;
-    const userId = req.userId;
-
-    if (!userId) {
-      return res.status(401).json({ error: 'User not authenticated' });
+    const { prompt } = req.body; // Expect JSON { prompt: "..." }
+    if (!prompt) {
+      return res.status(400).json({ error: "Prompt is required" });
     }
 
-    const apiKey = process.env.GEMINI_KEY;
-    if (!apiKey) {
-      return res.status(500).json({ error: 'Gemini API key not configured' });
-    }
+    // Conversation history can just include the single prompt or multiple messages
 
-    const ai = new GoogleGenAI({ apiKey });
+    // Generate content using Gemini
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        tools: [{
+          //@ts-ignore
+          functionDeclarations: functionDeclaration
+        }],
+      },    
+    });
+    
+    
 
-    // Get user's GitHub token if available
-    const user = await User.findById(userId);
-    let octokit: Octokit | null = null;
-    if (user?.githubToken) {
-      octokit = new Octokit({ auth: user.githubToken });
-    }
-
-    // Load the appropriate prompt
-    const promptTemplate = getPrompt(promptType || 1);
-
-    // Prepare input based on prompt type (same logic as original handler)
-    let inputText = '';
-    if (promptType === 1) {
-      if (typeof input === 'string') {
-        try {
-          const parsed = JSON.parse(input);
-          if (parsed.content) {
-            inputText = `File: ${parsed.path || context?.fileName || 'unknown'}\n\n${parsed.content}`;
-          } else {
-            inputText = input;
-          }
-        } catch {
-          inputText = input;
-        }
-      } else {
-        inputText = JSON.stringify(input);
-      }
-
-      if (context?.currentFeatureMap) {
-        try {
-          const featureMap = typeof context.currentFeatureMap === 'string' ? JSON.parse(context.currentFeatureMap) : context.currentFeatureMap;
-          inputText += `\n\nCurrent feature map:\n${JSON.stringify(featureMap, null, 2)}`;
-        } catch {
-          // Ignore parsing errors
-        }
-      }
-    } else if (promptType === 2) {
-      inputText = typeof input === 'string' ? input : JSON.stringify(input);
-    } else if (promptType === 3) {
-      inputText = typeof input === 'string' ? input : JSON.stringify(input);
-      if (context?.featureMap) {
-        try {
-          const featureMap = typeof context.featureMap === 'string' ? JSON.parse(context.featureMap) : context.featureMap;
-          inputText += `\n\nAvailable features:\n${JSON.stringify(featureMap, null, 2)}`;
-        } catch {
-          // Ignore parsing errors
-        }
-      }
-    } else if (promptType === 4) {
-      inputText = typeof input === 'string' ? input : JSON.stringify(input);
-      if (context?.fileContents) {
-        try {
-          const files = typeof context.fileContents === 'string' ? JSON.parse(context.fileContents) : context.fileContents;
-          inputText += `\n\nFile contents:\n${JSON.stringify(files, null, 2)}`;
-        } catch {
-          // Ignore parsing errors
-        }
-      }
-      if (context?.featureMap) {
-        try {
-          const featureMap = typeof context.featureMap === 'string' ? JSON.parse(context.featureMap) : context.featureMap;
-          inputText += `\n\nFeature map:\n${JSON.stringify(featureMap, null, 2)}`;
-        } catch {
-          // Ignore parsing errors
-        }
-      }
+    // The response object may vary depending on Gemini client version
+    // Typically output text is in response.output_text
+    if (response.functionCalls && response.functionCalls.length > 0) {
+      const functionCall = response.functionCalls[0]; // Assuming one function call
+      res.json({ functionName: functionCall.name, result: functionCall.args })
     } else {
-      inputText = typeof input === 'string' ? input : JSON.stringify(input);
+      res.json(null)
     }
-
-    // Prepare initial message with prompt + input
-    let conversationHistory: any[] = [
-      {
-        role: 'user',
-        parts: [{ text: promptTemplate + '\n\n' + inputText }],
-      },
-    ];
-
-    // Agentic loop
-    const maxIterations = 10;
-    let iteration = 0;
-    let continueLoop = true;
-    let finalResponse = null;
-
-    while (continueLoop && iteration < maxIterations) {
-      iteration++;
-      console.log(`Gemini iteration ${iteration}`);
-
-      // Determine which functions to provide based on prompt type
-      let functionsToUse: any[] = [];
-
-      if (promptType === 1) {
-        functionsToUse = functionDeclaration.filter((f) => f.name === 'add_feature' || f.name === 'update_feature');
-      } else if (promptType === 3) {
-        functionsToUse = functionDeclaration.filter((f) => f.name === 'get_file');
-      } else if (promptType === 4) {
-        functionsToUse = functionDeclaration.filter((f) => f.name === 'get_file' || f.name === 'update_file');
-      } else {
-        functionsToUse = [];
-      }
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash-exp',
-        contents: conversationHistory,
-        config:
-          functionsToUse.length > 0
-            ? {
-                tools: [
-                  {
-                    functionDeclarations: functionsToUse,
-                  },
-                ],
-              }
-            : undefined,
-      });
-
-      const candidate = response.candidates?.[0];
-      if (!candidate) {
-        finalResponse = 'No response from Gemini';
-        break;
-      }
-
-      // Check for function calls
-      const functionCalls = candidate.content?.parts?.filter((part: any) => part.functionCall) || [];
-
-      if (functionCalls.length > 0) {
-        // Execute all function calls
-        const functionResponses = [];
-
-        for (const part of functionCalls) {
-          const functionCall = part.functionCall;
-          if (functionCall) {
-            const result = await executeFunctionCall(functionCall, octokit);
-
-            functionResponses.push({
-              functionResponse: {
-                name: functionCall.name,
-                response: result,
-              },
-            });
-          }
-        }
-
-        // Add function responses to conversation
-        conversationHistory.push({
-          role: 'function',
-          parts: functionResponses,
-        });
-      } else {
-        // No more function calls - extract final response
-        const textPart = candidate.content?.parts?.find((part: any) => part.text);
-        if (textPart) {
-          finalResponse = textPart.text;
-        }
-        continueLoop = false;
-      }
-    }
-
-    // Format response based on prompt type (same as original)
-    if (promptType === 1) {
-      const features: any[] = [];
-      for (const msg of conversationHistory) {
-        if (msg.role === 'function') {
-          for (const part of msg.parts) {
-            if (part.functionResponse) {
-              const response = part.functionResponse.response;
-              if (response.action === 'add' && response.feature) {
-                features.push(response.feature);
-              } else if (response.action === 'update' && response.feature) {
-                features.push(response.feature);
-              }
-            }
-          }
-        }
-      }
-
-      if (features.length > 0) {
-        return res.json({ features });
-      } else {
-        try {
-          const parsed = JSON.parse(finalResponse || '{}');
-          return res.json(parsed);
-        } catch {
-          return res.json({ features: [] });
-        }
-      }
-    } else if (promptType === 2) {
-      try {
-        const parsed = JSON.parse(finalResponse || '{}');
-        return res.json(parsed);
-      } catch {
-        return res.json({
-          features: [],
-          relationships: [],
-        });
-      }
-    } else if (promptType === 3) {
-      const requestedFiles: string[] = [];
-      for (const msg of conversationHistory) {
-        if (msg.role === 'function') {
-          for (const part of msg.parts) {
-            if (part.functionResponse?.name === 'get_file') {
-              const response = part.functionResponse.response;
-              if (response?.path && !response.error) {
-                requestedFiles.push(response.path);
-              }
-            }
-          }
-        }
-      }
-
-      try {
-        const parsed = JSON.parse(finalResponse || '{}');
-        if (parsed.requestedFiles) {
-          requestedFiles.push(...parsed.requestedFiles);
-        }
-      } catch {
-        // Not JSON, continue
-      }
-
-      return res.json({
-        requestedFiles: [...new Set(requestedFiles)],
-      });
-    } else if (promptType === 4) {
-      const commits: string[] = [];
-      for (const msg of conversationHistory) {
-        if (msg.role === 'function') {
-          for (const part of msg.parts) {
-            if (part.functionResponse?.name === 'update_file') {
-              const response = part.functionResponse.response;
-              if (response?.commit) {
-                commits.push(response.commit);
-              }
-            }
-          }
-        }
-      }
-
-      return res.json({
-        message: finalResponse || 'Code changes applied',
-        commits: commits,
-      });
-    }
-
-    return res.json({ result: finalResponse || 'Workflow completed' });
-  } catch (error: any) {
-    console.error('Gemini API error:', error);
-    res.status(500).json({ error: error.message || 'Failed to generate content' });
+  } catch (error) {
+    console.error("Gemini generation error:", error);
+    res.status(500).json({ error: "Failed to generate content" });
   }
 });
 
