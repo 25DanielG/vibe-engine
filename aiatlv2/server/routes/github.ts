@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { Octokit } from '@octokit/rest';
 import { User } from '../models/User.js';
-import { Project } from '../models/Project.js';
 import { authenticateToken } from '../middleware/auth.js';
 import type { AuthRequest } from '../middleware/auth.js';
 
@@ -314,20 +313,9 @@ router.post('/repos/connect', async (req: AuthRequest, res) => {
 
     const repoId = full_name;
 
-    // Check if project already exists
-    let project = await Project.findOne({ userId, repoId });
-
-    if (!project) {
-      project = new Project({
-        userId,
-        repoId,
-      });
-      await project.save();
-    }
-
     res.json({
       success: true,
-      projectId: project._id.toString(),
+      projectId: "-1",
       message: `Repository ${full_name} connected.`,
     });
   } catch (error: any) {

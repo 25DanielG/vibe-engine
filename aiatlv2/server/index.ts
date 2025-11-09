@@ -4,7 +4,7 @@ import mongoose from 'mongoose';
 import authRoutes from './routes/auth.js';
 import githubRoutes from './routes/github.js';
 import geminiRoutes from './routes/gemini.js';
-import projectsRoutes from './routes/projects.js';
+
 //import workflowsRoutes from './routes/workflows.js';
 
 import path from 'path';
@@ -42,7 +42,7 @@ app.get('/health', (req, res) => {
 app.use('/', authRoutes);
 app.use('/api/github', githubRoutes);
 app.use('/api/gemini', geminiRoutes);
-app.use('/api/projects', projectsRoutes);
+
 //app.use('/api/workflows', workflowsRoutes);
 
 // Error handling middleware

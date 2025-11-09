@@ -5,7 +5,8 @@ export interface IUser extends Document {
   email: string;
   githubUsername?: string;
   githubId?: string;
-  githubToken?: string
+  githubToken?: string;
+  featureMap?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -30,6 +31,10 @@ const UserSchema = new Schema<IUser>(
     githubToken: {
       type: String,
       default: null,
+    },
+    featureMap: {
+      type: String,
+      default: ""
     },
   },
   {

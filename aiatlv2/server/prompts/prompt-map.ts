@@ -9,7 +9,7 @@ export default [
       properties: {
         name: {
           type: Type.STRING,
-          description: 'Unique feature name (e.g., "Authentication", "Database")',
+          description: 'Unique feature name (e.g., "Authentication", "Database"). Use the exact case-sensitive naming included in the input.',
           minLength: 1,
           maxLength: 100,
         },

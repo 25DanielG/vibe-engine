@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IFeature extends Document {
   _id: string;
-  projectId: mongoose.Types.ObjectId;
+  userId: mongoose.Types.ObjectId;
   featureName: string;
   userSummary: string;
   aiSummary: string;
@@ -14,9 +14,9 @@ export interface IFeature extends Document {
 
 const FeatureSchema = new Schema<IFeature>(
   {
-    projectId: {
+    userId: {
       type: Schema.Types.ObjectId,
-      ref: 'Project',
+      ref: 'User',
       required: true,
       index: true,
     },
