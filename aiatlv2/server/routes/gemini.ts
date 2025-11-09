@@ -14,6 +14,7 @@ import { writeFileToRepo } from '../utils/updateGithub.js'
 import { User } from '../models/User.js';
 import { getGithubTokenForUser } from '../services/githubToken.js';
 
+import { createRepoWebhook } from '../utils/createWebhook.js'
 const router = Router();
 // router.use(authenticateToken);
 
@@ -45,13 +46,28 @@ interface FeatureEntry {
 }
 
 // Gemini API endpoint for creating feature map
-router.post("/create-feature-map", async (req: AuthRequest, res) => {
+router.post("/create-feature-map", authenticateToken, async (req: AuthRequest, res) => {
   try {
     const githubUser = req.body.githubUser;
     const repoName = req.body.repoName;
     if (!githubUser || !repoName) {
       throw new Error("Missing required field: repoName");
     }
+
+    if (!req.userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    const token = await getGithubTokenForUser(req.userId);
+    if (!token) {
+      return res.status(400).json({ error: 'GitHub not connected for this user' });
+    }
+
+    // Create an endpoint to monitor for updates:
+    createRepoWebhook(
+      token,
+      githubUser,
+      repoName
+    )
 
     //Fetch entire GitHub repository
     const repo: string = await fetchAllFilesFromRepo({ owner: githubUser, repo: repoName });

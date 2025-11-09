@@ -1,7 +1,7 @@
 import { Octokit } from "@octokit/rest";
 import { existsSync } from "fs";
 
-const TARGET_DOMAIN = "";
+const TARGET_DOMAIN = "http://localhost:3801/update/webhook";
 
 async function isWebhookExists(octokit: Octokit, owner: string, repo: string) {
     try {
@@ -30,8 +30,7 @@ async function isWebhookExists(octokit: Octokit, owner: string, repo: string) {
 export async function createRepoWebhook(
   token: string,
   owner: string,
-  repo: string,
-  webhookUrl: string,
+  repo: string
 ) {
   const octokit = new Octokit({ auth: token });
 
@@ -40,7 +39,7 @@ export async function createRepoWebhook(
       owner,
       repo,
       config: {
-        url: webhookUrl,
+        url: TARGET_DOMAIN,
         content_type: "json",
         insecure_ssl: "0",
       },
