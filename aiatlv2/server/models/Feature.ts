@@ -47,7 +47,5 @@ const FeatureSchema = new Schema<IFeature>(
   }
 );
 
-FeatureSchema.index({ projectId: 1 });
-
 export const Feature = mongoose.model<IFeature>('Feature', FeatureSchema);
 

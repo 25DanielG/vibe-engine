@@ -27,7 +27,5 @@ const ProjectSchema = new Schema<IProject>(
   }
 );
 
-ProjectSchema.index({ userId: 1, repoId: 1 }, { unique: true });
-
 export const Project = mongoose.model<IProject>('Project', ProjectSchema);
 

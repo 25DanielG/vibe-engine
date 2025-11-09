@@ -2,7 +2,8 @@ import { Router } from 'express';
 import { GoogleGenAI, Type } from '@google/genai';
 import { Octokit } from '@octokit/rest';
 import { User } from '../models/User.js';
-import { authenticateToken, AuthRequest } from '../middleware/auth.js';
+import { authenticateToken } from '../middleware/auth.js';
+import type { AuthRequest } from '../middleware/auth.js';
 import { getPrompt } from '../utils/prompts.js';
 
 const router = Router();
@@ -63,7 +64,7 @@ const githubFunctions = {
       return {
         success: true,
         commit: result.data.commit.html_url,
-        sha: result.data.content.sha,
+        sha: result.data.content?.sha,
       };
     } catch (error: any) {
       return {
