@@ -2,7 +2,7 @@ import { FaGithub, FaYoutube } from 'react-icons/fa6';
 
 const Footer = () => {
   return (
-    <footer className="text-gray-400 border-t border-gray-800">
+    <footer className="text-gray-400 border-t border-gray-800 absolute z-10 w-full">
       <div className="mx-auto max-w-7xl px-2 py-16 sm:px-4 lg:px-6 grid grid-cols-1 md:grid-cols-6 gap-10">
         <div className="md:col-span-2">
           <img
@@ -64,7 +64,7 @@ const Footer = () => {
       </div>
 
       <div className="border-t border-gray-800 mt-8 py-6 text-center text-sm text-gray-500">
-        © 2025 Your Company, Inc. All rights reserved.
+        © 2025 VibeEngine. All rights reserved.
       </div>
     </footer>
   );
