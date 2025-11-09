@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/com
 import { Skeleton } from "~/components/ui/skeleton";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
+import UserMenu from "~/components/UserMenu";
 
 const FEATURES_LIST = [
     {
@@ -83,11 +84,15 @@ export default function Dashboard() {
                         <div className="h-9 w-9 rounded-lg bg-purple-600 grid place-items-center text-white font-bold">
                             V
                         </div>
-                        <h1 className="text-lg font-semibold tracking-tight text-white">VibeCode Analyzer</h1>
+                        <h1 className="text-lg font-semibold tracking-tight text-white">
+                            VibeCode Analyzer
+                        </h1>
                         <span className="ml-3 hidden sm:inline text-xs rounded-full border border-purple-700 px-2 py-0.5 text-purple-400">
                             Dashboard
                         </span>
                     </div>
+
+                    <UserMenu />
                 </div>
             </header>
 
