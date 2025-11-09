@@ -34,7 +34,7 @@ type Props = {
     onRepoSelected?: (owner: string, repo: string) => void;
 };
 
-const TOKEN_STORAGE_KEY = "vibecode:auth_token";
+const TOKEN_STORAGE_KEY = "vibeengine:auth_token";
 
 const API_BASE_URL = (() => {
     const configured = import.meta.env.VITE_API_URL?.replace(/\/$/, "") ?? "";
@@ -146,7 +146,7 @@ export default function ConnectGitHub({ onRepoSelected }: Props) {
                             size="sm"
                             disabled={busy}
                             onClick={loadRepos}
-                            className="border-purple-600 text-white hover:bg-purple-700 hover:text-white"
+                            className="border-purple-600 text-white bg-purple-600 hover:bg-purple-500 hover:text-white"
                         >
                             <RotateCcw className="mr-2 h-4 w-4" />
                             Retry

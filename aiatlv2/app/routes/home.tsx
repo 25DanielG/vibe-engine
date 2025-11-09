@@ -9,7 +9,7 @@ import Splash from "~/components/Splash";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "VibeCode Analyzer - Decoding Vibecoding" },
+    { title: "VibeEngine Analyzer - Decoding Vibecoding" },
     { name: "description", content: "Understand and evolve any codebase in minutes with AI-powered feature mapping." },
   ];
 }

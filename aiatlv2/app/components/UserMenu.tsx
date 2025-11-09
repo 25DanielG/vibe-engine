@@ -24,8 +24,8 @@ type ErrorPayload = {
     error?: string;
 };
 
-const TOKEN_STORAGE_KEY = "vibecode:auth_token";
-const USER_STORAGE_KEY = "vibecode:auth_user";
+const TOKEN_STORAGE_KEY = "vibeengine:auth_token";
+const USER_STORAGE_KEY = "vibeengine:auth_user";
 
 const API_BASE_URL = (() => {
     const configured = import.meta.env.VITE_API_URL?.replace(/\/$/, "") ?? "";

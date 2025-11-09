@@ -81,12 +81,7 @@ export default function Dashboard() {
             <header className="sticky top-0 z-20 border-b border-gray-800 bg-gray-900/80 backdrop-blur">
                 <div className="mx-auto max-w-7xl px-5 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-lg bg-purple-600 grid place-items-center text-white font-bold">
-                            V
-                        </div>
-                        <h1 className="text-lg font-semibold tracking-tight text-white">
-                            VibeCode Analyzer
-                        </h1>
+                        <img src="app/assets/full_logo.png" alt="VibeEngine" className="h-8 ml-2 mt-1" />
                         <span className="ml-3 hidden sm:inline text-xs rounded-full border border-purple-700 px-2 py-0.5 text-purple-400">
                             Dashboard
                         </span>

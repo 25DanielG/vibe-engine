@@ -3,7 +3,7 @@ import Dashboard from "~/sections/Dashboard";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Dashboard - VibeCode Analyzer" },
+    { title: "Dashboard - VibeEngine" },
     { name: "description", content: "Analyze your repository features and make AI-powered code modifications." },
   ];
 }

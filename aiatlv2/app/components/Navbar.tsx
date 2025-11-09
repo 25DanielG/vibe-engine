@@ -22,8 +22,8 @@ type ErrorPayload = {
     error?: string;
 };
 
-const TOKEN_STORAGE_KEY = 'vibecode:auth_token';
-const USER_STORAGE_KEY = 'vibecode:auth_user';
+const TOKEN_STORAGE_KEY = 'vibeengine:auth_token';
+const USER_STORAGE_KEY = 'vibeengine:auth_user';
 
 const API_BASE_URL = (() => {
     const configured = import.meta.env.VITE_API_URL?.replace(/\/$/, '') ?? '';
@@ -153,9 +153,7 @@ export default function Navbar({ navigation }: { navigation: NavItem[] }) {
         <header className="absolute inset-x-0 top-0 z-50">
             <nav aria-label="Global" className="flex items-center justify-between p-6 lg:px-8">
                 <div className="flex lg:flex-1">
-                    <a href="/" className="-m-1.5 p-1.5">
-                        <span className="text-2xl font-bold text-indigo-500">VibeCode</span>
-                    </a>
+                    <img src="app/assets/full_logo.png" alt="VibeEngine" className="h-8 ml-2 mt-1" />
                 </div>
 
                 <div className="hidden lg:flex lg:gap-x-12">
