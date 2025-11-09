@@ -259,9 +259,15 @@ router.post("/generate-feature", authenticateToken, async (req: AuthRequest, res
           )
         }
       });
-      // Debug
-      const functionCall = response.functionCalls[0]; // Assuming one function call
-      res.json({ functionName: functionCall.name, result: functionCall.args })
+
+      const ret = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: featurePrompt,
+      });
+
+      return res.json({
+        "return": ret.text
+      })
     } else {
       console.log(response.text)
       res.json(null)
