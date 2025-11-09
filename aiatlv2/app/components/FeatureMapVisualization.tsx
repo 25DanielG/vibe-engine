@@ -28,8 +28,8 @@ type Feature = {
 
 export default function FeatureMapVisualization({ features }: { features: Feature[] }) {
   const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
 
   useEffect(() => {
     if (!features || features.length === 0) return;
