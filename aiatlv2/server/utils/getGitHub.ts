@@ -15,12 +15,20 @@ export interface RepoFile {
  * @param token GitHub personal access token (required for private repos)
  * @returns Array of { path, content }
  */
-export async function fetchAllFilesFromRepo(
-  owner: string,
-  repo: string,
+export async function fetchAllFilesFromRepo({
+  owner,
+  repo,
   branch = "master",
-  token?: string
-): Promise<string> {
+  token,
+}: {
+  owner: string;
+  repo: string;
+  branch?: string;
+  token?: string;
+}): Promise<string> {
+  console.log("Fetching all files from repo:", owner + "/" + repo + "@" + branch);
+  console.log("Using token:", token);
+
   if (!token) {
     throw new Error("A GitHub token is required for private repos");
   }

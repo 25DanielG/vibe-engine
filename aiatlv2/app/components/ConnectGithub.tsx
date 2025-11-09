@@ -167,7 +167,13 @@ export default function ConnectGitHub({ onRepoSelected }: Props) {
                                 ) : (
                                     <Select
                                         value={selectedRepo}
-                                        onValueChange={setSelectedRepo}
+                                        onValueChange={(value) => {
+                                            setSelectedRepo(value);
+                                            const [owner, repo] = value.split("/");
+                                            if (owner && repo && onRepoSelected) {
+                                                onRepoSelected(owner, repo);
+                                            }
+                                        }}
                                     >
                                         <SelectTrigger
                                             id="repo"

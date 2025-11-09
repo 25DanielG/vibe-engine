@@ -18,12 +18,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Badge } from '~/components/ui/badge';
 
 type Feature = {
-  featureId: string;
-  featureName: string;
+  featureName: string;       // now acts as unique identifier
   userSummary: string;
   aiSummary: string;
   filenames: string[];
-  neighbors: string[];
+  neighbors: string[];       // references to other featureNames
 };
 
 export default function FeatureMapVisualization({ features }: { features: Feature[] }) {
@@ -34,20 +33,19 @@ export default function FeatureMapVisualization({ features }: { features: Featur
   useEffect(() => {
     if (!features || features.length === 0) return;
 
-    // Calculate layout positions using force-directed layout simulation
+    // Layout nodes in a circle
     const centerX = 400;
     const centerY = 300;
     const radius = 180;
     const angleStep = (2 * Math.PI) / features.length;
 
     const newNodes: Node[] = features.map((feature, idx) => {
-      // Position nodes in a circle for better visibility of connections
       const angle = idx * angleStep;
       const x = centerX + radius * Math.cos(angle);
       const y = centerY + radius * Math.sin(angle);
 
       return {
-        id: feature.featureId,
+        id: feature.featureName, // use featureName as id
         type: 'default',
         data: {
           label: (
@@ -78,12 +76,12 @@ export default function FeatureMapVisualization({ features }: { features: Featur
       };
     });
 
-    // Create edges from neighbors with enhanced styling
+    // Create edges based on neighbor featureNames
     const newEdges: Edge[] = features.flatMap((feature) =>
-      (feature.neighbors || []).map((neighborId) => ({
-        id: `${feature.featureId}-${neighborId}`,
-        source: feature.featureId,
-        target: neighborId,
+      (feature.neighbors || []).map((neighborName) => ({
+        id: `${feature.featureName}-${neighborName}`,
+        source: feature.featureName,
+        target: neighborName,
         type: 'smoothstep',
         animated: true,
         style: {
@@ -101,12 +99,13 @@ export default function FeatureMapVisualization({ features }: { features: Featur
     setEdges(newEdges);
   }, [features, setNodes, setEdges]);
 
-  const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
-    const feature = features.find((f) => f.featureId === node.id);
-    if (feature) {
-      setSelectedFeature(feature);
-    }
-  }, [features]);
+  const onNodeClick = useCallback(
+    (_event: React.MouseEvent, node: Node) => {
+      const feature = features.find((f) => f.featureName === node.id);
+      if (feature) setSelectedFeature(feature);
+    },
+    [features]
+  );
 
   const onConnect: OnConnect = useCallback(
     (params) => setEdges((eds) => addEdge(params, eds)),
@@ -118,7 +117,9 @@ export default function FeatureMapVisualization({ features }: { features: Featur
       <Card className="bg-gray-800/50 border-gray-700">
         <CardHeader>
           <CardTitle className="text-white">Feature Map</CardTitle>
-          <CardDescription className="text-gray-400">No features found. Connect a repository to generate the feature map.</CardDescription>
+          <CardDescription className="text-gray-400">
+            No features found. Connect a repository to generate the feature map.
+          </CardDescription>
         </CardHeader>
       </Card>
     );
@@ -166,7 +167,9 @@ export default function FeatureMapVisualization({ features }: { features: Featur
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto bg-gray-900 border-gray-700 text-white">
           <DialogHeader>
             <DialogTitle className="text-white">{selectedFeature?.featureName}</DialogTitle>
-            <DialogDescription className="text-gray-400">Feature details and associated files</DialogDescription>
+            <DialogDescription className="text-gray-400">
+              Feature details and associated files
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
@@ -195,10 +198,10 @@ export default function FeatureMapVisualization({ features }: { features: Featur
               <div>
                 <h4 className="font-semibold text-sm mb-2 text-purple-400">Connected Features</h4>
                 <div className="flex flex-wrap gap-2">
-                  {selectedFeature.neighbors.map((neighborId) => {
-                    const neighbor = features.find((f) => f.featureId === neighborId);
+                  {selectedFeature.neighbors.map((neighborName) => {
+                    const neighbor = features.find((f) => f.featureName === neighborName);
                     return neighbor ? (
-                      <Badge key={neighborId} variant="outline" className="border-purple-600 text-purple-300">
+                      <Badge key={neighborName} variant="outline" className="border-purple-600 text-purple-300">
                         {neighbor.featureName}
                       </Badge>
                     ) : null;
