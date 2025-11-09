@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ConnectGitHub from "~/components/ConnectGithub";
 import FeatureMapVisualization from "~/components/FeatureMapVisualization";
 import ChatInterface from "~/components/ChatInterface";
@@ -10,154 +10,7 @@ import UserMenu from "~/components/UserMenu";
 
 const TOKEN_STORAGE_KEY = "vibeengine:auth_token";
 
-const FEATURES_LIST = [
-    {
-        featureId: "Authentication & OAuth",
-        featureName: "Authentication & OAuth",
-        userSummary:
-            "Users can sign up with email/password or sign in using GitHub. Sessions persist across reloads and logouts work reliably.",
-        aiSummary:
-            "Implements JWT-based auth with HTTP-only refresh tokens, bcrypt password hashing, and GitHub OAuth via the GitHub REST API. Includes middleware for route protection, role-based guards, and token rotation on each refresh.",
-        filenames: [
-            "server/routes/auth.ts",
-            "server/middleware/authenticateToken.ts",
-            "server/services/authService.ts",
-            "server/services/githubOAuthService.ts",
-            "server/utils/jwt.ts",
-            "client/app/components/Navbar.tsx",
-            "client/app/components/UserMenu.tsx",
-            "client/app/routes/login.tsx"
-        ],
-        neighbors: ["User Profiles & Settings", "Repository Integration & Sync", "Database & Persistence Layer"]
-    },
-    {
-        featureId: "User Profiles & Settings",
-        featureName: "User Profiles & Settings",
-        userSummary:
-            "Users can edit their profile (name, avatar, bio), manage notification preferences, and connect or disconnect their GitHub account.",
-        aiSummary:
-            "Provides RESTful CRUD endpoints for user profiles backed by a PostgreSQL users table. Handles avatar uploads to S3-compatible storage, stores public GitHub metadata, and exposes typed hooks on the React side using React Query for optimistic updates.",
-        filenames: [
-            "server/routes/profile.ts",
-            "server/services/profileService.ts",
-            "server/models/User.ts",
-            "server/integrations/objectStorage.ts",
-            "client/app/sections/Profile.tsx",
-            "client/app/components/profile/ProfileForm.tsx",
-            "client/app/lib/api/profile.ts"
-        ],
-        neighbors: ["Authentication & OAuth", "Database & Persistence Layer"]
-    },
-    {
-        featureId: "Repository Integration & Sync",
-        featureName: "Repository Integration & Sync",
-        userSummary:
-            "After signing in with GitHub, users can see a list of their repositories, select one, and trigger an analysis run for that repo.",
-        aiSummary:
-            "Uses the GitHub API with per-user access tokens to fetch repositories, supports pagination and filtering by owner/permissions, and stores a cached snapshot of selected repos. The React client uses a debounced search input and a virtualized dropdown to handle large repo lists, with error and rate-limit handling.",
-        filenames: [
-            "server/routes/github.ts",
-            "server/services/githubRepoService.ts",
-            "server/models/Repository.ts",
-            "server/middleware/rateLimit.ts",
-            "client/app/components/ConnectGitHub.tsx",
-            "client/app/lib/api/github.ts",
-            "client/app/hooks/useGitHubRepos.ts"
-        ],
-        neighbors: ["Authentication & OAuth", "Feature Map & Dashboard Analytics", "Background Jobs & Code Analysis Pipeline", "Database & Persistence Layer"]
-    },
-    {
-        featureId: "Feature Map & Dashboard Analytics",
-        featureName: "Feature Map & Dashboard Analytics",
-        userSummary:
-            "Displays a feature map for the selected repository along with metrics like file counts, feature dependencies, and recent analysis runs.",
-        aiSummary:
-            "Express endpoints aggregate analysis results from a `feature_maps` and `analysis_runs` table, using Prisma with optimized joins and indexes. The React dashboard renders interactive graphs with Recharts, supports drill-down views per feature, and uses WebSocket-based live updates when a new analysis run completes.",
-        filenames: [
-            "server/routes/analytics.ts",
-            "server/services/featureMapService.ts",
-            "server/models/FeatureMap.ts",
-            "server/integrations/websocketServer.ts",
-            "client/app/sections/Dashboard.tsx",
-            "client/app/components/FeatureMapVisualization.tsx",
-            "client/app/components/Stats/MetricCards.tsx",
-            "client/app/lib/api/analytics.ts"
-        ],
-        neighbors: ["Repository Integration & Sync", "Background Jobs & Code Analysis Pipeline", "Notifications & Webhooks"]
-    },
-    {
-        featureId: "Background Jobs & Code Analysis Pipeline",
-        featureName: "Background Jobs & Code Analysis Pipeline",
-        userSummary:
-            "When a repo is selected, the app queues an analysis job that runs in the background and updates the dashboard when finished.",
-        aiSummary:
-            "Implements a worker process using BullMQ and Redis to run CPU-intensive code analysis outside the main Express process. Jobs consume GitHub repo metadata, clone repositories to a temporary workspace, run static analysis (AST parsing, dependency graph building), and persist normalized results to PostgreSQL. Includes retry/backoff policies and dead-letter queues.",
-        filenames: [
-            "server/jobs/queue.ts",
-            "server/jobs/analyzeRepositoryJob.ts",
-            "server/workers/worker.ts",
-            "server/config/redis.ts",
-            "server/services/analysisPipeline.ts",
-            "server/scripts/run-worker.ts"
-        ],
-        neighbors: ["Repository Integration & Sync", "Feature Map & Dashboard Analytics", "Database & Persistence Layer", "Observability, Config & Error Handling"]
-    },
-    {
-        featureId: "Database & Persistence Layer",
-        featureName: "Database & Persistence Layer",
-        userSummary:
-            "Centralized data storage for users, repositories, feature maps, and queued analysis runs.",
-        aiSummary:
-            "Uses PostgreSQL with Prisma as the ORM. Includes connection pooling, environment-specific configurations, migrations, and seed scripts. Defines models for users, sessions, repositories, feature maps, and analysis runs, with compound indexes to speed up dashboard queries.",
-        filenames: [
-            "server/db/client.ts",
-            "server/db/migrate.ts",
-            "server/db/seed.ts",
-            "prisma/schema.prisma",
-            "prisma/migrations/",
-            "server/models/User.ts",
-            "server/models/Repository.ts",
-            "server/models/AnalysisRun.ts"
-        ],
-        neighbors: ["Authentication & OAuth", "User Profiles & Settings", "Repository Integration & Sync", "Background Jobs & Code Analysis Pipeline"]
-    },
-    {
-        featureId: "Notifications & Webhooks",
-        featureName: "Notifications & Webhooks",
-        userSummary:
-            "Users get notified when an analysis run finishes and the app can react to GitHub webhook events like new commits or pull requests.",
-        aiSummary:
-            "Exposes a signed GitHub webhook endpoint that validates HMAC signatures, processes events for push and pull_request, and enqueues analysis jobs when relevant files change. Stores notification records with read/unread flags and pushes real-time updates to the client via a WebSocket channel, with email fallback using a transactional email provider.",
-        filenames: [
-            "server/routes/webhooks.ts",
-            "server/routes/notifications.ts",
-            "server/services/webhookService.ts",
-            "server/services/notificationService.ts",
-            "server/integrations/emailProvider.ts",
-            "client/app/components/NotificationBell.tsx",
-            "client/app/lib/api/notifications.ts"
-        ],
-        neighbors: ["Feature Map & Dashboard Analytics", "Observability, Config & Error Handling"]
-    },
-    {
-        featureId: "Observability, Config & Error Handling",
-        featureName: "Observability, Config & Error Handling",
-        userSummary:
-            "Keeps the system stable and debuggable with consistent logging, error pages, and environment-specific configuration.",
-        aiSummary:
-            "Centralized configuration module for server and client using environment variables with schema validation. Integrates structured logging, request logging middleware, and error-handling middleware that maps internal errors to user-friendly messages. Client-side React components display toast notifications and fallback error boundaries for failed API calls or component crashes.",
-        filenames: [
-            "server/config/env.ts",
-            "server/config/logger.ts",
-            "server/middleware/errorHandler.ts",
-            "server/middleware/requestLogger.ts",
-            "client/app/lib/config.ts",
-            "client/app/components/ui/sonner.tsx",
-            "client/app/root.tsx"
-        ],
-        neighbors: ["Background Jobs & Code Analysis Pipeline", "Notifications & Webhooks"]
-    }
-];
+const FEATURES_LIST: any[] = [];
 
 type Feature = {
     featureName: string;
@@ -168,18 +21,80 @@ type Feature = {
 };
 
 export default function Dashboard() {
-    const [features] = useState<Feature[]>(FEATURES_LIST); // Using static data
-    const [selectedRepo, setSelectedRepo] = useState<{ owner: string; repo: string; repoId?: string } | null>({
-        owner: "example",
-        repo: "react-app"
-    });
-    const [loading] = useState(false);
+    const [features, setFeatures] = useState<Feature[]>(FEATURES_LIST); // start with static sample as fallback
+    const [selectedRepo, setSelectedRepo] = useState<{ owner: string; repo: string; repoId?: string } | null>(null);
+    const [loading, setLoading] = useState(false);
+
 
     const [isChatOpen, setIsChatOpen] = useState(false);
     const [chatInput, setChatInput] = useState("");
     const [chatMessages, setChatMessages] = useState<
         { role: "user" | "assistant"; content: string }[]
     >([]);
+
+    useEffect(() => {
+        // load feature map from backend on first render
+        const loadFeatureMap = async () => {
+            try {
+                setLoading(true);
+
+                let token: string | null = null;
+                if (typeof window !== "undefined") {
+                    token = window.localStorage.getItem(TOKEN_STORAGE_KEY);
+                }
+
+                if (!token) {
+                    // Not logged in — keep default FEATURES_LIST or empty, your choice
+                    console.warn("No auth token found; using default feature list");
+                    setLoading(false);
+                    return;
+                }
+
+                const res = await fetch(apiUrl("/api/feature-map"), {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+
+                if (!res.ok) {
+                    const errPayload = await res
+                        .json()
+                        .catch(() => ({ error: "Failed to load feature map" }));
+                    console.error("Error loading feature map:", errPayload);
+                    setLoading(false);
+                    return;
+                }
+
+                const data = await res.json() as { featureMap: unknown };
+
+                console.log("Loaded feature map data:", data);
+
+                let parsed: Feature[] = [];
+                if (Array.isArray(data.featureMap)) {
+                    parsed = data.featureMap as Feature[];
+                } else if (typeof data.featureMap === "string") {
+                    // In case you decide to send the raw string from backend
+                    try {
+                        parsed = JSON.parse(data.featureMap) as Feature[];
+                    } catch (err) {
+                        console.error("Failed to JSON.parse featureMap from server:", err);
+                    }
+                }
+
+                if (parsed && Array.isArray(parsed) && parsed.length > 0) {
+                    setFeatures(parsed);
+                }
+            } catch (err) {
+                console.error("Unexpected error loading feature map:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        void loadFeatureMap();
+    }, []);
 
     const API_BASE_URL = (() => {
         const configured = import.meta.env.VITE_API_URL?.replace(/\/$/, "") ?? "";
@@ -330,27 +245,25 @@ export default function Dashboard() {
                     </div>
                 </section>
 
-                {selectedRepo && (
-                    <>
-                        <section>
-                            {loading && features.length === 0 ? (
-                                <Card className="h-[600px] bg-gray-800/50 border-gray-700">
-                                    <CardHeader>
-                                        <CardTitle className="text-white">Feature Map</CardTitle>
-                                        <CardDescription className="text-gray-400">Loading feature map...</CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="space-y-4">
-                                        <Skeleton className="h-12 w-full bg-gray-700" />
-                                        <Skeleton className="h-12 w-full bg-gray-700" />
-                                        <Skeleton className="h-12 w-full bg-gray-700" />
-                                    </CardContent>
-                                </Card>
-                            ) : (
-                                <FeatureMapVisualization features={features} />
-                            )}
-                        </section>
-                    </>
-                )}
+                <section>
+                    {loading && features.length === 0 ? (
+                        <Card className="h-[600px] bg-gray-800/50 border-gray-700">
+                            <CardHeader>
+                                <CardTitle className="text-white">Feature Map</CardTitle>
+                                <CardDescription className="text-gray-400">
+                                    Loading feature map...
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <Skeleton className="h-12 w-full bg-gray-700" />
+                                <Skeleton className="h-12 w-full bg-gray-700" />
+                                <Skeleton className="h-12 w-full bg-gray-700" />
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <FeatureMapVisualization features={features} />
+                    )}
+                </section>
 
                 {!selectedRepo && (
                     <Card className="bg-gray-800/50 border-gray-700">
