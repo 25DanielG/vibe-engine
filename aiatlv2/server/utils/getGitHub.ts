@@ -1,6 +1,6 @@
 import { Octokit } from "@octokit/rest";
 
-interface RepoFile {
+export interface RepoFile {
   path: string;
   content: string;
 }
@@ -18,9 +18,9 @@ interface RepoFile {
 export async function fetchAllFilesFromRepo(
   owner: string,
   repo: string,
-  branch = "main",
+  branch = "master",
   token?: string
-): Promise<RepoFile[]> {
+): Promise<String> {
   if (!token) {
     throw new Error("A GitHub token is required for private repos");
   }
@@ -55,5 +55,10 @@ export async function fetchAllFilesFromRepo(
     results.push({ path: file.path, content });
   }
 
-  return results;
+  let compressedRepo: string = ""
+  results.forEach(r => {
+    compressedRepo += "## " + r.path + "\n```" + r.content + "```"
+  });
+
+  return compressedRepo;
 }

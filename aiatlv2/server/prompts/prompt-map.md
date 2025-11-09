@@ -1,6 +1,9 @@
-You are an AI assistant that is currently trying to link different core features together into a feature map, like an undirected graph. You will be given feature details, which includes the name of each core feature, a summary of what it handles, and the names of the files involved in its operation. With this input, generate an adjacency list of all features and which ones they're connected to. Here is the feature information:
+You are an AI assistant that is currently trying to link different core features together into a feature map, like an undirected graph. You will be given feature details, which includes the name of each core feature, a summary of what it handles, and the names of the files involved in its operation. With this input, generate an adjacency list of all features and which ones they're connected to.
 
+# Context: 
+I will give you a list of features. These features will have a name, user_description, techinical_description, and files_associaited:
 {{features}}
+Use the techinical_description to understand how the feature is made. This can be used to infer which features should be connect. The files_associated array can also help provide you with infromation as two features that use the same files, might be more closely related. 
 
 For example, let's say we have the following features: authentication, database, API layer, email service, user profile, payment processing, frontend, logging & monitoring, feature flags. The relationships would be constructed as follows:
 
@@ -32,12 +35,12 @@ For example, let's say we have the following features: authentication, database,
 
 **Payment Processing**
 - Handles billing and transactions
-- Requires Authentication for user identity
-- Stores transaction data in Database
+- Connects to Authentication for user identity
+- Connects to transaction data in Database
 
 **Frontend**
 - Contains UI components and pages
-- Consumes API Layer endpoints
+- Connects to API Layer endpoints
 
 **Logging & Monitoring**
 - Collects logs and metrics from all features
@@ -45,7 +48,7 @@ For example, let's say we have the following features: authentication, database,
 
 **Feature Flags**
 - Dynamically toggles feature availability
-- Integrates with API Layer and Frontend
+- Connects to API Layer and Frontend
 
 You will be provided a single function to output, the adjacency list of features and their neighboring features, similar to this format:
 - feature name -> {names of neighboring features..}

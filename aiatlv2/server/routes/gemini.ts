@@ -5,6 +5,9 @@ import type { AuthRequest } from '../middleware/auth.js';
 import type { Feature } from '../models/Feature.js';
 
 import { getPrompts } from '../utils/prompts.js'
+import { fetchAllFilesFromRepo } from '../utils/getGitHub.js'
+import { fillPrompt } from '../utils/fillPrompt.js'
+import type { RepoFile } from '../utils/getGitHub.js'
 
 const router = Router();
 // router.use(authenticateToken);
@@ -28,112 +31,47 @@ interface UpdateFileArgs {
   sha: string;
 }
 
-const githubFunctions = {
-  get_file: async (octokit: Octokit, { owner, repo, file_path, branch = 'main' }: GetFileArgs) => {
-    try {
-      const { data } = await octokit.repos.getContent({
-        owner,
-        repo,
-        path: file_path,
-        ref: branch,
-      });
-      const content = Buffer.from((data as any).content, 'base64').toString('utf-8');
-      return {
-        content,
-        sha: (data as any).sha,
-        path: file_path,
-      };
-    } catch (error: any) {
-      return {
-        error: `Failed to get file: ${error.message}`,
-        content: null,
-        sha: null,
-        path: file_path,
-      };
-    }
-  },
-  update_file: async (octokit: Octokit, { owner, repo, path, content, message, branch = 'main', sha }: UpdateFileArgs) => {
-    try {
-      const result = await octokit.repos.createOrUpdateFileContents({
-        owner,
-        repo,
-        path,
-        message,
-        content: Buffer.from(content).toString('base64'),
-        branch,
-        sha,
-      });
-      return {
-        success: true,
-        commit: result.data.commit.html_url,
-        sha: result.data.content?.sha,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: `Failed to update file: ${error.message}`,
-      };
-    }
-  },
-};
-
-async function executeFunctionCall(call: any, octokit: Octokit | null): Promise<any> {
-  console.log(`Executing function: ${call.name}`, call.args);
-
+// Gemini API endpoint for creating feature map
+router.post("/create-feature-map", async (req: AuthRequest, res) => {
   try {
-    if (call.name === 'get_file') {
-      if (!octokit) {
-        return { error: 'GitHub token required for get_file' };
-      }
-      return await githubFunctions.get_file(octokit, call.args);
-    } else if (call.name === 'update_file') {
-      if (!octokit) {
-        return { error: 'GitHub token required for update_file' };
-      }
-      return await githubFunctions.update_file(octokit, call.args);
-    } else if (call.name === 'add_feature') {
-      return {
-        action: 'add',
-        feature: call.args,
-      };
-    } else if (call.name === 'update_feature') {
-      return {
-        action: 'update',
-        feature: call.args,
-      };
-    }
-    return { error: `Unknown function: ${call.name}` };
-  } catch (error: any) {
-    return { error: error.message };
-  }
-}
-
-// Gemini API endpoint
-router.post("/generate", async (req: AuthRequest, res) => {
-  try {
-    const { prompt } = req.body; // Expect JSON { prompt: "..." }
-    if (!prompt) {
-      return res.status(400).json({ error: "Prompt is required" });
+    const githubUser = req.body.githubUser;
+    const repoName = req.body.repoName;
+    if (!githubUser || !repoName) {
+      throw new Error("Missing required field: repoName");
     }
 
-    // Conversation history can just include the single prompt or multiple messages
+    //Fetch entire GitHub repository
+    const repo: string = await fetchAllFilesFromRepo(githubUser, githubUser);
+    
+    //Get feature generation markdown and functions, inputted with repository code
+    const { markdown, json } = await getPrompts("feature");
+    const featurePrompt = fillPrompt(markdown, {"repo" : repo})
 
-    // Generate content using Gemini
+    // Generate feature groups using Gemini
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: prompt,
+      contents: featurePrompt,
       config: {
         tools: [{
           //@ts-ignore
-          functionDeclarations: functionDeclaration
+          functionDeclarations: json
         }],
       },
     });
-
-
-    // The response object may vary depending on Gemini client version
-    // Typically output text is in response.output_text
+    
+    var featureGroup: typeof Feature[];
     if (response.functionCalls && response.functionCalls.length > 0) {
+      response.functionCalls.forEach((func) => {
+        const funcName = func.name;
+        const funcArgs = func.args;
+        //Add feature to group
+        if (funcName === "add_feature") {
+          featureGroup[funcName] = new Feature()
+        //Update feature in group
+        } else if (funcName === "update_feature") {
+
+        }
+      });
       const functionCall = response.functionCalls[0]; // Assuming one function call
       res.json({ functionName: functionCall.name, result: functionCall.args })
     } else {
@@ -145,6 +83,7 @@ router.post("/generate", async (req: AuthRequest, res) => {
     res.status(500).json({ error: "Failed to generate content" });
   }
 });
+
 
 // Generate feature map from disconnected features with Gemini
 async function makeFeatureMap(features: typeof Feature[]): Promise<any> {
@@ -174,6 +113,66 @@ async function makeFeatureMap(features: typeof Feature[]): Promise<any> {
   }
 }
 
+
+// Gemini API endpoint for creating feature map
+router.post("/generate-feature", async (req: AuthRequest, res) => {
+  try {
+    const githubUser = req.body.githubUser;
+    const repoName = req.body.repoName;
+    const requestedFeature = req.body.requestedFeature;
+    if (!githubUser || !repoName) {
+      throw new Error("Missing required field: repoName");
+    }
+
+    //Fetch entire GitHub repository
+    const repo: String = await fetchAllFilesFromRepo(githubUser, repoName);
+    
+    //Get feature generation markdown and functions, inputted with repository code
+    const { markdown, json } = await getPrompts("edit");
+    const featurePrompt = fillPrompt(markdown, {
+      "requestedFeature" : requestedFeature,
+      "featureFormat" : repo,
+      "featureMap" : repo, // Need to implement
+      "sourceCode" : repo,
+    })
+
+    // Generate feature groups using Gemini
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: featurePrompt,
+      config: {
+        tools: [{
+          //@ts-ignore
+          functionDeclarations: json
+        }],
+      },    
+    });
+    
+    var featureGroup: typeof Feature[];
+    if (response.functionCalls && response.functionCalls.length > 0) {
+      response.functionCalls.forEach((func) => {
+        const funcName = func.name;
+        const funcArgs = func.args;
+        //Add feature to group
+        if (funcName === "add_feature") {
+          featureGroup[funcName] = new Feature()
+        //Update feature in group
+        } else if (funcName === "update_feature") {
+
+        }
+      });
+      const functionCall = response.functionCalls[0]; // Assuming one function call
+      res.json({ functionName: functionCall.name, result: functionCall.args })
+    } else {
+      console.log(response.text)
+      res.json(null)
+    }
+  } catch (error) {
+    console.error("Gemini generation error:", error);
+    res.status(500).json({ error: "Failed to generate content" });
+  }
+});
+
 router.post("/dummy", async (req: AuthRequest, res) => {
   try {
     const { prompt } = req.body ?? {};
@@ -190,4 +189,3 @@ router.post("/dummy", async (req: AuthRequest, res) => {
 });
 
 export default router;
-
