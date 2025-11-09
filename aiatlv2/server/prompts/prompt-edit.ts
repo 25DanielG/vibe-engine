@@ -3,19 +3,13 @@ import { Type } from '@google/genai';
 export default [
     {
     name: 'update_file',
-    description: 'Update the contents of a specific file in a GitHub repository.',
+    description: 'Function that allows an AI Agent to modify the contents of a specific file in a GitHub repository.',
     parameters: {
         type: Type.OBJECT,
         properties: {
-        owner: { type: Type.STRING, description: 'Repository owner' },
-        repo: { type: Type.STRING, description: 'Repository name' },
-        path: { type: Type.STRING, description: 'File path' },
-        content: { type: Type.STRING, description: 'New file content' },
-        message: { type: Type.STRING, description: 'Commit message' },
-        branch: { type: Type.STRING, description: 'Branch name (default: main)' },
-        sha: { type: Type.STRING, description: 'File SHA from get_file (required for updates)' },
+            content: { type: Type.STRING, description: 'The content of the file that is being updated' },
         },
-        required: ['owner', 'repo', 'path', 'content', 'message', 'sha'],
+        required: ['content'],
     },
     }
 ];
