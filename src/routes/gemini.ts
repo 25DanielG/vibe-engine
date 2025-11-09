@@ -93,10 +93,14 @@ const githubFunctions = {
         branch,
         sha,
       });
+
+      const updatedContent = result.data.content;
+
       return {
         success: true,
         commit: result.data.commit.html_url,
-        sha: result.data.content.sha,
+        // content can be null, so fall back to the sha we already had
+        sha: updatedContent?.sha ?? sha,
       };
     } catch (error: any) {
       return {
@@ -333,12 +337,12 @@ router.post('/generate', async (req: AuthRequest, res) => {
         config:
           functionsToUse.length > 0
             ? {
-                tools: [
-                  {
-                    functionDeclarations: functionsToUse,
-                  },
-                ],
-              }
+              tools: [
+                {
+                  functionDeclarations: functionsToUse,
+                },
+              ],
+            }
             : undefined,
       });
 
