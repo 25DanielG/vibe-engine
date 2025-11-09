@@ -140,8 +140,7 @@ router.post("/generate-feature", async (req: AuthRequest, res) => {
       "featureMap" : repo, // Need to implement
       "sourceCode" : repo,
     })
-
-    // Generate feature groups using Gemini
+   // Generate feature groups using Gemini
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: featurePrompt,
@@ -153,26 +152,36 @@ router.post("/generate-feature", async (req: AuthRequest, res) => {
       },    
     });
     
-    var featureGroup: any;
     if (response.functionCalls && response.functionCalls.length > 0) {
-      //Process all returned functions for adding/updating features
       response.functionCalls.forEach((func) => {
         const funcName = func.name;
         const funcArgs = func.args;
-        
-        //Add feature to group
-        if (funcName) {
-          featureGroup[funcName] = {
-            name: funcArgs?.name,
-            user_description: funcArgs?.user_description,
-            technical_description: funcArgs?.technical_description,
-            file_references: funcArgs?.file_references
-          };
+        // Add file to github repository
+        if (funcName === "update_file") {
+          writeFileToRepo(
+            githubUser,
+            repoName,
+            funcArgs?.filename,
+            funcArgs?.content,
+            "VibeEngine updated a file in the repository.",
+            "main",
+            token
+          )
+        } else if (funcName == "add_file") {
+          writeFileToRepo(
+            githubUser,
+            repoName,
+            funcArgs?.filename,
+            funcArgs?.content,
+            "VibeEngine added a file to the repository.",
+            "main",
+            token
+          )  
         }
       });
-      //Create feature map
-      return res.json({"feature-map": makeFeatureMap(JSON.stringify(featureGroup))})
-
+      // Debug
+      const functionCall = response.functionCalls[0]; // Assuming one function call
+      res.json({ functionName: functionCall.name, result: functionCall.args })
     } else {
       console.log(response.text)
       res.json(null)
@@ -182,6 +191,8 @@ router.post("/generate-feature", async (req: AuthRequest, res) => {
     res.status(500).json({ error: "Failed to generate content" });
   }
 });
+
+
 
 
 export default router;
