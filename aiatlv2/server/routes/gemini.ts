@@ -6,7 +6,7 @@ import type { Feature } from '../models/Feature.js';
 
 import { getPrompts } from '../utils/prompts.js'
 import { fetchAllFilesFromRepo } from '../utils/getGitHub.js'
-import { fillPrompt } from '../utils/fillPrompt.js'
+import { renderTemplate } from '../utils/fillPrompt.js'
 import type { RepoFile } from '../utils/getGitHub.js'
 
 const router = Router();
@@ -41,11 +41,11 @@ router.post("/create-feature-map", async (req: AuthRequest, res) => {
     }
 
     //Fetch entire GitHub repository
-    const repo: string = await fetchAllFilesFromRepo(githubUser, githubUser);
+    const repo: string = await fetchAllFilesFromRepo(githubUser, repoName);
     
     //Get feature generation markdown and functions, inputted with repository code
     const { markdown, json } = await getPrompts("feature");
-    const featurePrompt = fillPrompt(markdown, {"repo" : repo})
+    const featurePrompt = renderTemplate(markdown, {"repo" : repo})
 
     // Generate feature groups using Gemini
     const response = await ai.models.generateContent({
@@ -59,21 +59,26 @@ router.post("/create-feature-map", async (req: AuthRequest, res) => {
       },    
     });
     
-    var featureGroup: typeof Feature[];
+    var featureGroup: any;
     if (response.functionCalls && response.functionCalls.length > 0) {
+      //Process all returned functions for adding/updating features
       response.functionCalls.forEach((func) => {
         const funcName = func.name;
         const funcArgs = func.args;
+        
         //Add feature to group
-        if (funcName === "add_feature") {
-          featureGroup[funcName] = new Feature()
-        //Update feature in group
-        } else if (funcName === "update_feature") {
-
+        if (funcName) {
+          featureGroup[funcName] = {
+            name: funcArgs?.name,
+            user_description: funcArgs?.user_description,
+            technical_description: funcArgs?.technical_description,
+            file_references: funcArgs?.file_references
+          };
         }
       });
-      const functionCall = response.functionCalls[0]; // Assuming one function call
-      res.json({ functionName: functionCall.name, result: functionCall.args })
+      //Create feature map
+      return res.json({"feature-map": makeFeatureMap(JSON.stringify(featureGroup))})
+
     } else {
       console.log(response.text)
       res.json(null)
@@ -86,13 +91,14 @@ router.post("/create-feature-map", async (req: AuthRequest, res) => {
 
 
 // Generate feature map from disconnected features with Gemini
-async function makeFeatureMap(features: typeof Feature[]) : Promise<any> {
-  const { markdown, json } = await getPrompts("feature");
+async function makeFeatureMap(features: string) : Promise<any> {
+  const { markdown, json } = await getPrompts("map");
+  const mapPrompt = renderTemplate(markdown, {"features" : features})
 
   // Generate content using Gemini
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
-    contents: markdown,
+    contents: mapPrompt,
     config: {
       tools: [{
         //@ts-ignore
@@ -100,13 +106,12 @@ async function makeFeatureMap(features: typeof Feature[]) : Promise<any> {
       }],
     },    
   });
-  
 
   // The response object may vary depending on Gemini client version
   // Typically output text is in response.output_text
   if (response.functionCalls && response.functionCalls.length > 0) {
     const functionCall = response.functionCalls[0]; // Assuming one function call
-    return { functionName: functionCall.name, result: functionCall.args }
+    return functionCall
   } else {
     console.log(response.text)
     return null;

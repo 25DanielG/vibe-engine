@@ -20,7 +20,7 @@ export async function fetchAllFilesFromRepo(
   repo: string,
   branch = "master",
   token?: string
-): Promise<String> {
+): Promise<string> {
   if (!token) {
     throw new Error("A GitHub token is required for private repos");
   }
