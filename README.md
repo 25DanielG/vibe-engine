@@ -30,7 +30,7 @@ cd react-copy/server
 npm install
 ```
 
-3. Create `.env` file (copy from `.env.example`):
+3. Create `.env` file:
 ```bash
 cp .env.example .env
 ```
@@ -43,7 +43,7 @@ MONGODB_URI=mongodb://localhost:27017/aiatl
 JWT_SECRET=your-secret-key-change-in-production
 GITHUB_CLIENT_ID=your_github_client_id
 GITHUB_CLIENT_SECRET=your_github_client_secret
-GITHUB_REDIRECT_URI=http://localhost:5173/auth/github/callback
+GITHUB_REDIRECT_URI=http://localhost:5173/auth/callback
 GEMINI_KEY=your_gemini_api_key
 ```
 
