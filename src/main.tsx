@@ -8,42 +8,38 @@ import App from "./App";
 import RequireAuth from "./components/RequireAuth";
 import Onboarding from "./pages/Onboarding";
 import GithubCallback from "./pages/GithubCallback";
-import { AuthProvider } from "./contexts/AuthContext";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<App />} />
-          <Route
-            path="/onboarding"
-            element={
-              <RequireAuth>
-                <Onboarding />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/dashboard"
-            element={
-              <RequireAuth requireGitHub={true}>
-                <Dashboard />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/auth/callback"
-            element={
-              <RequireAuth>
-                <GithubCallback />
-              </RequireAuth>
-            }
-          />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<App />} />
+        <Route
+          path="/onboarding"
+          element={
+            <RequireAuth>
+              <Onboarding />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            <RequireAuth requireGitHub={true}>
+              <Dashboard />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/auth/callback"
+          element={
+            <RequireAuth>
+              <GithubCallback />
+            </RequireAuth>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   </React.StrictMode>
 );
-

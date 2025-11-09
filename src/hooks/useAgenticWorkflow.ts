@@ -1,7 +1,13 @@
 import { useState } from 'react';
-import { workflowsApi } from '@/lib/api';
+import { generateClient } from 'aws-amplify/data';
+import type { Schema } from '../../amplify/data/resource';
+import { Amplify } from "aws-amplify";
+import outputs from "../../amplify_outputs.json";
 
-// AI Workflow Hook - Migrated from AWS Amplify to Express API
+Amplify.configure(outputs);
+const client = generateClient<Schema>();
+
+// AI Workflow Hook
 
 export function useAgenticWorkflow() {
     const [isRunning, setIsRunning] = useState(false);
@@ -13,26 +19,14 @@ export function useAgenticWorkflow() {
         setError(null);
         
         try {
-            let response;
-            if (workflowType === 'onboarding') {
-                response = await workflowsApi.startOnboarding(input);
-            } else if (workflowType === 'modification') {
-                response = await workflowsApi.startModification(input);
-            } else {
-                throw new Error(`Unknown workflow type: ${workflowType}`);
-            }
+            const response = await client.queries.agenticWorkflow({
+                input,
+                workflowType
+            });
             
-            if (response?.executionArn) {
-                await pollWorkflowStatus(response.executionArn);
-            } else {
-                // If workflow completes immediately, set result
-                if (response?.output) {
-                    setResult({
-                        status: 'SUCCEEDED',
-                        message: response.output.message || 'Workflow completed successfully',
-                        commits: response.output.commits || []
-                    });
-                }
+            const data = response.data as any;
+            if (data?.executionArn) {
+                await pollWorkflowStatus(data.executionArn);
             }
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Unknown error');
@@ -44,30 +38,41 @@ export function useAgenticWorkflow() {
     const pollWorkflowStatus = async (executionArn: string) => {
         const poll = async () => {
             try {
-                const statusData = await workflowsApi.getStatus(executionArn);
-                    
-                setResult(statusData);
-                    
-                // Continue polling if workflow is still running
-                if (statusData.status === 'RUNNING' || (statusData.status === 'SUCCEEDED' && !statusData.output)) {
-                    setTimeout(poll, 2000); // Poll every 2 seconds
-                } else if (statusData.status === 'SUCCEEDED' && statusData.output) {
-                    // Workflow completed, extract output
-                    let output;
-                    if (typeof statusData.output === 'string') {
-                        output = JSON.parse(statusData.output);
+                const statusResponse = await client.queries.getWorkflowStatus({
+                    executionArn
+                });
+                
+                if (statusResponse.data) {
+                    let statusData;
+                    if (typeof statusResponse.data === 'string') {
+                        statusData = JSON.parse(statusResponse.data);
                     } else {
-                        output = statusData.output;
+                        statusData = statusResponse.data;
                     }
+                    
+                    setResult(statusData);
+                    
+                    // Continue polling if workflow is still running
+                    if (statusData.status === 'RUNNING' || statusData.status === 'SUCCEEDED' && !statusData.output) {
+                        setTimeout(poll, 2000); // Poll every 2 seconds
+                    } else if (statusData.status === 'SUCCEEDED' && statusData.output) {
+                        // Workflow completed, extract output
+                        let output;
+                        if (typeof statusData.output === 'string') {
+                            output = JSON.parse(statusData.output);
+                        } else {
+                            output = statusData.output;
+                        }
                         
-                    // Set result with output data
-                    setResult({
-                        status: 'SUCCEEDED',
-                        message: output.message || 'Workflow completed successfully',
-                        commits: output.commits || []
-                    });
-                } else if (statusData.status === 'FAILED') {
-                    setError('Workflow execution failed');
+                        // Set result with output data
+                        setResult({
+                            status: 'SUCCEEDED',
+                            message: output.message || 'Workflow completed successfully',
+                            commits: output.commits || []
+                        });
+                    } else if (statusData.status === 'FAILED') {
+                        setError('Workflow execution failed');
+                    }
                 }
             } catch (err) {
                 console.error('Error polling workflow status:', err);
@@ -85,4 +90,3 @@ export function useAgenticWorkflow() {
         error
     };
 }
-

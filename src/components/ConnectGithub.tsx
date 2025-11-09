@@ -8,8 +8,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import { RotateCcw, Rocket } from "lucide-react";
 import { toast } from "sonner";
-import { githubApi, projectsApi } from "@/lib/api";
-import { useAuth } from "@/contexts/AuthContext";
 import { useAgenticWorkflow } from "@/hooks/useAgenticWorkflow";
 
 type Repo = {
@@ -24,101 +22,8 @@ export default function ConnectGitHub({ onRepoSelected }: { onRepoSelected?: (ow
     const [phase, setPhase] = useState<"idle" | "loading" | "connected" | "error">("idle");
     const [repos, setRepos] = useState<Repo[]>([]);
     const [selectedRepo, setSelectedRepo] = useState<string>("");
-    const { user } = useAuth();
+    const [userId, setUserId] = useState<string>("");
     const { startWorkflow } = useAgenticWorkflow();
-
-    useEffect(() => {
-        loadRepos();
-    }, [user]);
-
-    // Refresh when coming back from OAuth callback
-    useEffect(() => {
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('githubConnected') === 'true') {
-            window.history.replaceState({}, '', window.location.pathname);
-            loadRepos();
-        }
-    }, []);
-
-    async function loadRepos() {
-        try {
-            setPhase("loading");
-            const repoList = await githubApi.getRepos();
-            setRepos(repoList);
-
-            if (repoList.length > 0 && !selectedRepo) {
-                setSelectedRepo(repoList[0].full_name);
-            }
-
-            setPhase("connected");
-        } catch (e: any) {
-            console.error("loadRepos error:", e);
-            setPhase("error");
-            setRepos([]);
-            toast.error("Couldn't load repositories", {
-                description: e?.message ?? "Try again.",
-            });
-        }
-    }
-
-    async function analyzeRepo() {
-        if (!selectedRepo || !user) return;
-
-        const [owner, repo] = selectedRepo.split('/');
-        const repoId = `${owner}/${repo}`;
-
-        try {
-            setPhase("loading");
-
-            // Connect repository (creates project)
-            const connectResponse = await githubApi.connectRepo(selectedRepo);
-            const projectId = connectResponse.projectId;
-
-            // Get repository files
-            const filesData = await githubApi.getRepoFiles(owner, repo);
-
-            if (filesData.error) {
-                throw new Error(filesData.error);
-            }
-
-            // Create webhook (optional)
-            try {
-                await githubApi.createWebhook(owner, repo);
-            } catch (e) {
-                console.warn("Webhook creation failed:", e);
-            }
-
-            // Start onboarding workflow to generate feature map
-            toast.info("Starting repository analysis...", {
-                description: `Analyzing ${filesData.count} files`
-            });
-
-            await startWorkflow(
-                JSON.stringify({
-                    owner,
-                    repo,
-                    repoId,
-                    projectId,
-                    files: filesData.files,
-                    userId: user.id,
-                }),
-                'onboarding'
-            );
-
-            setPhase("connected");
-            toast.success("Repository connected", {
-                description: `${selectedRepo} is being analyzed`
-            });
-
-            // Notify parent component
-            if (onRepoSelected) {
-                onRepoSelected(owner, repo);
-            }
-        } catch (e: any) {
-            setPhase("error");
-            toast.error("Couldn't analyze repository", { description: e?.message ?? "Try again." });
-        }
-    }
 
     const connected = phase === "connected";
     const busy = phase === "loading";
@@ -172,11 +77,11 @@ export default function ConnectGitHub({ onRepoSelected }: { onRepoSelected?: (ow
                                 )}
                             </div>
                             <div className="flex items-end gap-2">
-                                <Button variant="outline" size="sm" onClick={loadRepos} disabled={busy}>
+                                <Button variant="outline" size="sm" disabled={busy}>
                                     <RotateCcw className="mr-2 h-4 w-4" />
                                     Refresh
                                 </Button>
-                                <Button size="sm" onClick={analyzeRepo} disabled={!selectedRepo || busy} className="gap-2">
+                                <Button size="sm" disabled={!selectedRepo || busy} className="gap-2">
                                     <Rocket className="h-4 w-4" />
                                     Analyze
                                 </Button>
@@ -193,4 +98,3 @@ export default function ConnectGitHub({ onRepoSelected }: { onRepoSelected?: (ow
         </Card>
     );
 }
-

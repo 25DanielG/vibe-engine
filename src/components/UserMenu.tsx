@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { signOut, fetchUserAttributes } from "aws-amplify/auth";
 import { useNavigate } from "react-router-dom";
 import {
     DropdownMenu,
@@ -15,19 +15,26 @@ import { LogOut, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function UserMenu() {
-    const { user, logout } = useAuth();
-    const navigate = useNavigate();
     const [email, setEmail] = useState<string>("");
+    const navigate = useNavigate();
 
     useEffect(() => {
-        if (user) {
-            setEmail(user.email || "");
-        }
-    }, [user]);
+        (async () => {
+            try {
+                const attrs = await fetchUserAttributes();
+                setEmail(attrs.email ?? "");
+            } catch {
+                setEmail("");
+            }
+        })();
+    }, []);
 
     async function handleSignOut() {
-        logout();
-        navigate("/");
+        try {
+            await signOut();
+        } finally {
+            navigate("/");
+        }
     }
 
     const initials = email ? email[0].toUpperCase() : "U";
@@ -61,4 +68,3 @@ export default function UserMenu() {
         </DropdownMenu>
     );
 }
-

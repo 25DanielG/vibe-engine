@@ -6,8 +6,6 @@ import ChatInterface from "@/components/ChatInterface";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Toaster } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAuth } from "@/contexts/AuthContext";
-import { projectsApi, githubApi } from "@/lib/api";
 
 type Feature = {
     featureId: string;
@@ -22,71 +20,8 @@ export default function Dashboard() {
     const [features, setFeatures] = useState<Feature[]>([]);
     const [selectedRepo, setSelectedRepo] = useState<{ owner: string; repo: string; repoId?: string } | null>(null);
     const [loading, setLoading] = useState(false);
+    const [userId, setUserId] = useState<string>("");
     const [projectId, setProjectId] = useState<string>("");
-    const { user } = useAuth();
-
-    const loadFeatureMap = async () => {
-        if (!selectedRepo || !projectId) return;
-
-        try {
-            setLoading(true);
-            // Load features filtered by project
-            const featureList = await projectsApi.getFeatures(projectId);
-
-            if (featureList) {
-                const mappedFeatures = featureList.map((f: any) => ({
-                    featureId: f._id || f.id,
-                    featureName: f.featureName || '',
-                    userSummary: f.userSummary || '',
-                    aiSummary: f.aiSummary || '',
-                    filenames: f.filenames || [],
-                    neighbors: (f.neighbors || []).map((n: any) => n._id || n.id || n)
-                }));
-                setFeatures(mappedFeatures);
-            }
-        } catch (error) {
-            console.error("Error loading feature map:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleRepoSelected = async (owner: string, repo: string) => {
-        if (!user) {
-            console.error("User not available");
-            return;
-        }
-
-        try {
-            const repoId = `${owner}/${repo}`;
-
-            // Get all projects and find matching one
-            const projects = await projectsApi.list();
-            const project = projects.find((p: any) => p.repoId === repoId);
-
-            if (project) {
-                setProjectId(project._id || project.id);
-            } else {
-                // Connect repo to create project
-                const connectResponse = await githubApi.connectRepo(repoId);
-                setProjectId(connectResponse.projectId);
-            }
-
-            setSelectedRepo({ owner, repo, repoId });
-        } catch (error) {
-            console.error("Error handling repository selection:", error);
-            setSelectedRepo({ owner, repo });
-        }
-    };
-
-    useEffect(() => {
-        if (selectedRepo && projectId) {
-            loadFeatureMap();
-            // Poll for updates every 10 seconds
-            const interval = setInterval(loadFeatureMap, 10000);
-            return () => clearInterval(interval);
-        }
-    }, [selectedRepo, projectId]);
 
     return (
         <div className="min-h-screen bg-background text-foreground">
@@ -123,7 +58,7 @@ export default function Dashboard() {
                     </Card>
 
                     <div className="lg:col-span-2">
-                        <ConnectGitHub onRepoSelected={handleRepoSelected} />
+                        <ConnectGitHub />
                     </div>
                 </section>
 
@@ -146,15 +81,6 @@ export default function Dashboard() {
                                 <FeatureMapVisualization features={features} />
                             )}
                         </section>
-
-                        <section>
-                            <ChatInterface
-                                repoOwner={selectedRepo.owner}
-                                repoName={selectedRepo.repo}
-                                featureMap={features}
-                                onFeatureMapUpdate={loadFeatureMap}
-                            />
-                        </section>
                     </>
                 )}
 
@@ -174,4 +100,3 @@ export default function Dashboard() {
         </div>
     );
 }
-

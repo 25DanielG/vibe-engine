@@ -3,7 +3,6 @@ import { useAgenticWorkflow } from '@/hooks/useAgenticWorkflow';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Send, Bot, User } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
 
 type Message = {
   role: 'user' | 'assistant';
@@ -24,7 +23,7 @@ export default function ChatInterface({
 }) {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
-  const { user } = useAuth();
+  const [userId, setUserId] = useState<string>('');
   const { startWorkflow, isRunning, result, error } = useAgenticWorkflow();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -85,7 +84,7 @@ export default function ChatInterface({
         userInput: userMessage,
         owner: repoOwner,
         repo: repoName,
-        userId: user?.id,
+        userId: userId,
         featureMap: featureMap || []
       }),
       'modification'
@@ -198,4 +197,3 @@ export default function ChatInterface({
     </Card>
   );
 }
-
