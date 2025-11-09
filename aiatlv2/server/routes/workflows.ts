@@ -1,9 +1,11 @@
+/*
 import { Router } from 'express';
 import { Octokit } from '@octokit/rest';
 import { User } from '../models/User.js';
 import { Project } from '../models/Project.js';
 import { Feature } from '../models/Feature.js';
-import { authenticateToken, AuthRequest } from '../middleware/auth.js';
+import { authenticateToken } from '../middleware/auth.js';
+import type { AuthRequest } from '../middleware/auth.js';
 import fetch from 'node-fetch';
 
 const router = Router();
@@ -384,4 +386,4 @@ async function saveFeatureMap(projectId: string, featureData: any) {
 }
 
 export default router;
-
+*/

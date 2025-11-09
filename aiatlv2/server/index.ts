@@ -6,7 +6,7 @@ import authRoutes from './routes/auth.js';
 import githubRoutes from './routes/github.js';
 import geminiRoutes from './routes/gemini.js';
 import projectsRoutes from './routes/projects.js';
-import workflowsRoutes from './routes/workflows.js';
+//import workflowsRoutes from './routes/workflows.js';
 
 dotenv.config();
 
@@ -33,7 +33,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/github', githubRoutes);
 app.use('/api/gemini', geminiRoutes);
 app.use('/api/projects', projectsRoutes);
-app.use('/api/workflows', workflowsRoutes);
+//app.use('/api/workflows', workflowsRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
