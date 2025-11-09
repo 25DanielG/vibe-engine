@@ -175,6 +175,58 @@ router.get('/api/auth/me', authenticateToken, async (req: AuthRequest, res) => {
   }
 });
 
+router.get('/api/github/repos', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    if (!req.userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (!user.githubToken) {
+      return res.status(400).json({ error: 'GitHub not connected for this user' });
+    }
+
+    const ghResponse = await fetch('https://api.github.com/user/repos?per_page=100&sort=updated', {
+      headers: {
+        Authorization: `Bearer ${user.githubToken}`,
+        Accept: 'application/vnd.github+json',
+      },
+    });
+
+    if (!ghResponse.ok) {
+      const text = await ghResponse.text();
+      console.error('GitHub /user/repos error:', ghResponse.status, text);
+      return res.status(502).json({ error: 'Failed to fetch repositories from GitHub' });
+    }
+
+    const ghRepos = (await ghResponse.json()) as Array<{
+      id: number;
+      full_name: string;
+      private: boolean;
+      description: string | null;
+      language: string | null;
+    }>;
+
+    const repos = ghRepos.map((r) => ({
+      id: r.id,
+      full_name: r.full_name,
+      private: r.private,
+      description: r.description ?? '',
+      language: r.language ?? '',
+    }));
+
+    return res.json(repos);
+  } catch (err: any) {
+    console.error('Error in /api/github/repos:', err);
+    return res.status(500).json({ error: err?.message || 'Failed to load repositories' });
+  }
+});
+
+
 router.post('/api/auth/logout', authenticateToken, (_req: AuthRequest, res) => {
   res.status(204).send();
 });
