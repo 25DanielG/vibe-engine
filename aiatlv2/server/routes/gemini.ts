@@ -18,7 +18,7 @@ import { createRepoWebhook } from '../utils/createWebhook.js'
 const router = Router();
 // router.use(authenticateToken);
 
-const ai = new GoogleGenAI({ apiKey: "AIzaSyCFSPOjc6d6av448EEg8MVYBtuZXVOaDWc" })
+const ai = new GoogleGenAI({ apiKey: "AIzaSyBHf_v1oePoDQV0KdGt0IGCKCPvTPmWMRQ" })
 
 interface GetFileArgs {
   owner: string;
