@@ -11,7 +11,7 @@ import { renderTemplate } from '../utils/fillPrompt.js'
 import type { RepoFile } from '../utils/getGitHub.js'
 
 import { writeFileToRepo } from '../utils/updateGithub.js'
-import { User } from 'server/models/User.js';
+import { User } from '../models/User.js';
 import { getGithubTokenForUser } from '../services/githubToken.js';
 
 const router = Router();
