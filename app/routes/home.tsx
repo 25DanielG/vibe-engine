@@ -18,13 +18,11 @@ export default function Home() {
   const [showSplash, setShowSplash] = useState(true);
 
   return (
-    <div className="relative min-h-screen overflow-y-auto bg-gray-900 text-white antialiased">
+    <div className="relative min-h-screen bg-gray-900 text-white antialiased">
       <Background />
 
       <main
-        className={`relative z-10 transition-transform duration-700 ${
-          showSplash ? "scale-105" : "scale-100"
-        }`}
+        className={`relative z-10 transition-transform duration-700`}
       >
         <section id="home">
           <HomeSection />
