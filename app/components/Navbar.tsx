@@ -34,7 +34,7 @@ const API_BASE_URL = (() => {
 const apiUrl = (path: string) => `${API_BASE_URL}${path}`;
 
 async function fetchCurrentUser(token: string): Promise<AuthUser> {
-    const response = await fetch(apiUrl('/api/auth/me'), {
+    const response = await fetch(apiUrl('/api/me'), {
         headers: {
             Authorization: `Bearer ${token}`,
         },
@@ -49,7 +49,7 @@ async function fetchCurrentUser(token: string): Promise<AuthUser> {
 }
 
 async function logoutRequest(token: string) {
-    await fetch(apiUrl('/api/auth/logout'), {
+    await fetch(apiUrl('/auth/logout'), {
         method: 'POST',
         headers: {
             Authorization: `Bearer ${token}`,
@@ -132,8 +132,7 @@ export default function Navbar({ navigation }: { navigation: NavItem[] }) {
     }, []);
 
     const handleGitHubSignIn = () => {
-        // Kick off OAuth flow – backend redirects to GitHub and then back
-        window.location.href = apiUrl('/api/auth/github/start');
+        window.location.href = apiUrl('/auth/github/start');
     };
 
     const handleLogout = async () => {

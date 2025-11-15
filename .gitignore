@@ -11,3 +11,6 @@ server/package-lock.json
 
 /dist/
 /dist/*
+server/dist
+server/node_modules
+server/node_modules/*

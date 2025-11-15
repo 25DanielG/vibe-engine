@@ -33,7 +33,6 @@ export default function FeatureMapVisualization({ features }: { features: Featur
   useEffect(() => {
     if (!features || features.length === 0) return;
 
-    // Layout nodes in a circle
     const centerX = 400;
     const centerY = 300;
     const radius = 180;
@@ -76,7 +75,6 @@ export default function FeatureMapVisualization({ features }: { features: Featur
       };
     });
 
-    // Create edges based on neighbor featureNames
     const newEdges: Edge[] = features.flatMap((feature) =>
       (feature.neighbors || []).map((neighborName) => ({
         id: `${feature.featureName}-${neighborName}`,
@@ -162,7 +160,7 @@ export default function FeatureMapVisualization({ features }: { features: Featur
         </CardContent>
       </Card>
 
-      {/* Feature Details Dialog */}
+      {/* feature details */}
       <Dialog open={!!selectedFeature} onOpenChange={() => setSelectedFeature(null)}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto bg-gray-900 border-gray-700 text-white">
           <DialogHeader>

@@ -2,12 +2,13 @@ import { Router } from 'express';
 import { User } from '../models/User.js';
 import { authenticateToken, generateToken } from '../middleware/auth.js';
 import type { AuthRequest } from '../middleware/auth.js';
+import { GITHUB_CLIENT_ID, GITHUB_REDIRECT_URI } from '../env.js';
 
 const router = Router();
 
-router.get('/api/auth/github/start', (_req, res) => {
-  const clientId = process.env.GITHUB_CLIENT_ID;
-  const redirectUri = process.env.GITHUB_REDIRECT_URI ?? 'http://localhost:3001/auth/github/callback';
+router.get('/github/start', (_req, res) => {
+  const clientId = GITHUB_CLIENT_ID;
+  const redirectUri = GITHUB_REDIRECT_URI ?? 'http://localhost:3001/auth/github/callback';
 
   console.log('clientId in route:', clientId);
   console.log('redirectUri in route:', redirectUri);
@@ -27,8 +28,7 @@ router.get('/api/auth/github/start', (_req, res) => {
   res.redirect(authorizeUrl);
 });
 
-// --- GitHub OAuth: callback ---
-router.get('/auth/callback', async (req, res) => {
+router.get('/callback', async (req, res) => {
   const code = req.query.code as string | undefined;
 
   if (!code) {
@@ -36,7 +36,6 @@ router.get('/auth/callback', async (req, res) => {
   }
 
   try {
-    // 1) Exchange code for access_token
     const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
       headers: {
@@ -44,10 +43,10 @@ router.get('/auth/callback', async (req, res) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        client_id: process.env.GITHUB_CLIENT_ID,
+        client_id: GITHUB_CLIENT_ID,
         client_secret: process.env.GITHUB_CLIENT_SECRET,
         code,
-        redirect_uri: process.env.GITHUB_REDIRECT_URI,
+        redirect_uri: GITHUB_REDIRECT_URI,
       }),
     });
 
@@ -65,7 +64,7 @@ router.get('/auth/callback', async (req, res) => {
 
     const accessToken = tokenJson.access_token;
 
-    // 2) Fetch GitHub user profile
+    // profile
     const userResponse = await fetch('https://api.github.com/user', {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -87,7 +86,7 @@ router.get('/auth/callback', async (req, res) => {
       email?: string | null;
     };
 
-    // 3) Try to get email if not present
+    // email
     let email = ghUser.email ?? undefined;
     if (!email) {
       const emailsResponse = await fetch('https://api.github.com/user/emails', {
@@ -110,12 +109,10 @@ router.get('/auth/callback', async (req, res) => {
       }
     }
 
-    // 4) Find or create local user
     const githubId = String(ghUser.id);
 
     let user = await User.findOne({ githubId });
     if (!user && email) {
-      // Fallback: maybe user existed before via email/password
       user = await User.findOne({ email });
     }
 
@@ -126,7 +123,6 @@ router.get('/auth/callback', async (req, res) => {
         githubToken: accessToken,
       });
     } else {
-      // update GitHub-related fields
       user.githubId = githubId;
       user.githubToken = accessToken;
       if (!user.email && email) {
@@ -136,10 +132,7 @@ router.get('/auth/callback', async (req, res) => {
 
     await user.save();
 
-    // 5) Issue your JWT
-    const token = generateToken(user._id.toString());
-
-    // 6) Redirect back to frontend with ?token=...
+    const token = generateToken(user._id.toString()); // jwt
     const redirectUrl = new URL(process.env.FRONTEND_URL + '/dashboard');
     redirectUrl.searchParams.set('token', token);
 
@@ -152,129 +145,7 @@ router.get('/auth/callback', async (req, res) => {
   }
 });
 
-router.get('/api/feature-map', authenticateToken, async (req: AuthRequest, res) => {
-  try {
-    if (!req.userId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-
-    // Only select the featureMap field for efficiency
-    const user = await User.findById(req.userId).select('featureMap');
-
-    if (!user || !user.featureMap) {
-      // No feature map yet — return empty list so frontend can fall back
-      return res.json({ featureMap: [] });
-    }
-
-    let parsed;
-    try {
-      // featureMap is stored as a string in Mongo
-      parsed = JSON.parse(user.featureMap);
-    } catch (err) {
-      console.error('Failed to JSON.parse featureMap for user', req.userId, err);
-      return res.status(500).json({ error: 'Invalid feature map format in database' });
-    }
-
-    // Convert object format to array format for frontend
-    let featureArray = [];
-    if (typeof parsed === 'object' && !Array.isArray(parsed)) {
-      // Transform Record<string, FeatureEntry> to Feature[]
-      featureArray = Object.values(parsed).map((entry: any) => ({
-        featureName: entry.name || '',
-        userSummary: entry.user_description || '',
-        aiSummary: entry.technical_description || '',
-        filenames: entry.file_references || [],
-        neighbors: entry.neighbors || [],
-      }));
-    } else if (Array.isArray(parsed)) {
-      featureArray = parsed;
-    }
-
-    return res.json({ featureMap: featureArray });
-  } catch (err: any) {
-    console.error('Error in /api/feature-map:', err);
-    return res
-      .status(500)
-      .json({ error: err?.message || 'Failed to load feature map' });
-  }
-});
-
-// --- Get current user (unchanged except we skip password) ---
-router.get('/api/auth/me', authenticateToken, async (req: AuthRequest, res) => {
-  try {
-    if (!req.userId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-
-    const user = await User.findById(req.userId).select('-password');
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    res.json({
-      id: user._id,
-      email: user.email,
-      githubConnected: !!user.githubToken,
-    });
-  } catch (error: any) {
-    console.error('Get user error:', error);
-    res.status(500).json({ error: error.message || 'Failed to get user' });
-  }
-});
-
-router.get('/api/github/repos', authenticateToken, async (req: AuthRequest, res) => {
-  try {
-    if (!req.userId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-
-    const user = await User.findById(req.userId);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    if (!user.githubToken) {
-      return res.status(400).json({ error: 'GitHub not connected for this user' });
-    }
-
-    const ghResponse = await fetch('https://api.github.com/user/repos?per_page=100&sort=updated', {
-      headers: {
-        Authorization: `Bearer ${user.githubToken}`,
-        Accept: 'application/vnd.github+json',
-      },
-    });
-
-    if (!ghResponse.ok) {
-      const text = await ghResponse.text();
-      console.error('GitHub /user/repos error:', ghResponse.status, text);
-      return res.status(502).json({ error: 'Failed to fetch repositories from GitHub' });
-    }
-
-    const ghRepos = (await ghResponse.json()) as Array<{
-      id: number;
-      full_name: string;
-      private: boolean;
-      description: string | null;
-      language: string | null;
-    }>;
-
-    const repos = ghRepos.map((r) => ({
-      id: r.id,
-      full_name: r.full_name,
-      private: r.private,
-      description: r.description ?? '',
-      language: r.language ?? '',
-    }));
-
-    return res.json(repos);
-  } catch (err: any) {
-    console.error('Error in /api/github/repos:', err);
-    return res.status(500).json({ error: err?.message || 'Failed to load repositories' });
-  }
-});
-
-
-router.post('/api/auth/logout', authenticateToken, (_req: AuthRequest, res) => {
+router.post('/logout', authenticateToken, (_req: AuthRequest, res) => {
   res.status(204).send();
 });
 

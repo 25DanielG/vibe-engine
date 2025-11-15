@@ -13,15 +13,12 @@ import type { RepoFile } from '../utils/getGitHub.js'
 import { writeFileToRepo } from '../utils/updateGithub.js'
 import { User } from '../models/User.js';
 import { getGithubTokenForUser } from '../services/githubToken.js';
-
 import { createRepoWebhook } from '../utils/createWebhook.js'
+import { GEMINI_API_KEY } from '../env.js';
 const router = Router();
 // router.use(authenticateToken);
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
-console.log("Gemini API Key:", process.env.GEMINI_API_KEY);
-
-console.log()
+const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY || "" });
 
 interface GetFileArgs {
   owner: string;
@@ -90,8 +87,8 @@ router.post("/create-feature-map", authenticateToken, async (req: AuthRequest, r
         }],
       },
     });
-    console.log(response.functionCalls?.length);
-    console.log(response.functionCalls);
+    // console.log(response.functionCalls?.length);
+    // console.log(response.functionCalls);
     
     const featureGroup: Record<string, FeatureEntry> = {};
     if (response.functionCalls && response.functionCalls.length > 0) {
@@ -144,7 +141,7 @@ router.post("/create-feature-map", authenticateToken, async (req: AuthRequest, r
       }
       // Convert featureGroup object to JSON string
       const featureMapStr = JSON.stringify(featureGroup);
-      console.log(featureMapStr);
+      // console.log(featureMapStr);
       await User.findByIdAndUpdate(req.userId, { featureMap: featureMapStr });
 
       res.json({ success: true, featureMap: featureMapStr });

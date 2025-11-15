@@ -35,9 +35,9 @@ const API_BASE_URL = (() => {
 
 const apiUrl = (path: string) => `${API_BASE_URL}${path}`;
 
-// 👉 matches backend: GET /api/auth/me
+// 👉 matches backend: GET /api/me
 async function fetchCurrentUser(token: string): Promise<AuthUser> {
-    const url = apiUrl("/api/auth/me");
+    const url = apiUrl("/api/me");
     console.log("Calling", url, "with token:", token);
 
     const response = await fetch(url, {
@@ -47,8 +47,8 @@ async function fetchCurrentUser(token: string): Promise<AuthUser> {
     });
 
     const text = await response.text();
-    console.log("Raw /api/auth/me status:", response.status);
-    console.log("Raw /api/auth/me body:", text);
+    console.log("Raw /api/me status:", response.status);
+    console.log("Raw /api/me body:", text);
 
     let data: any;
     try {
@@ -65,9 +65,9 @@ async function fetchCurrentUser(token: string): Promise<AuthUser> {
     return data as AuthUser;
 }
 
-// 👉 matches backend: POST /api/auth/logout
+// 👉 matches backend: POST /auth/logout
 async function logoutRequest(token: string) {
-    const url = apiUrl("/api/auth/logout");
+    const url = apiUrl("/auth/logout");
     console.log("Calling", url, "with token:", token);
 
     await fetch(url, {
@@ -112,7 +112,7 @@ export default function UserMenu() {
         const cachedUser = window.localStorage.getItem(USER_STORAGE_KEY);
 
         if (!token) {
-            console.log("No auth token; skipping /api/auth/me");
+            console.log("No auth token; skipping /api/me");
             setUser(null);
             return;
         }
@@ -133,7 +133,7 @@ export default function UserMenu() {
 
         fetchCurrentUser(token)
             .then((profile) => {
-                console.log("Profile from /api/auth/me:", profile);
+                console.log("Profile from /api/me:", profile);
                 if (cancelled) return;
                 setUser(profile);
                 window.localStorage.setItem(
