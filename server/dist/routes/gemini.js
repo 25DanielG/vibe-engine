@@ -9,7 +9,9 @@ import { User } from '../models/User.js';
 import { getGithubTokenForUser } from '../services/githubToken.js';
 const router = Router();
 // router.use(authenticateToken);
-const ai = new GoogleGenAI({ apiKey: "AIzaSyBHf_v1oePoDQV0KdGt0IGCKCPvTPmWMRQ" });
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+console.log("Gemini API Key:", process.env.GEMINI_API_KEY);
+console.log();
 // Gemini API endpoint for creating feature map
 router.post("/create-feature-map", authenticateToken, async (req, res) => {
     try {

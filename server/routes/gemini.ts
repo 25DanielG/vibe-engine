@@ -18,7 +18,10 @@ import { createRepoWebhook } from '../utils/createWebhook.js'
 const router = Router();
 // router.use(authenticateToken);
 
-const ai = new GoogleGenAI({ apiKey: "AIzaSyBHf_v1oePoDQV0KdGt0IGCKCPvTPmWMRQ" })
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+console.log("Gemini API Key:", process.env.GEMINI_API_KEY);
+
+console.log()
 
 interface GetFileArgs {
   owner: string;
